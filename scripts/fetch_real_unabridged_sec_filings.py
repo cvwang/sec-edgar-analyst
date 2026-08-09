@@ -186,10 +186,39 @@ class SEC10KHTMLToMarkdownParser(HTMLParser):
             .replace("&#8230;", "...")
         )
         text = re.sub(r"&\#\d+;", " ", text)
-        text = re.sub(r"[ \t]+", " ", text)
-        text = re.sub(r"\n[ \t]+", "\n", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = fix_sec_mojibake_encoding(text)
         return text.strip()
+
+
+def fix_sec_mojibake_encoding(text: str) -> str:
+    """Fixes character encoding mismatch (Mojibake) and normalizes quotes/apostrophes/bullets."""
+    if not text:
+        return text
+
+    replacements = [
+        ("â€¢", "\n- "),
+        ("â€™", "'"),
+        ("â€œ", '"'),
+        ("â€", '"'),
+        ("â„¢", "™"),
+        ("â€”", " — "),
+        ("â€“", " – "),
+        ("Â", ""),
+    ]
+    for bad, good in replacements:
+        text = text.replace(bad, good)
+
+    if any(bad in text for bad in ["Ã"]):
+        try:
+            text = text.encode("latin-1").decode("utf-8")
+        except Exception:
+            pass
+
+    text = text.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+    text = re.sub(r"•\s*", "\n- ", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def clean_html_to_plain_text(html_content: str) -> str:

@@ -349,10 +349,9 @@ def clean_sec_document_text(raw_text: str) -> str:
             processed_lines.append(line_clean)
     text = '\n'.join(processed_lines)
 
-    # 6. Normalize spaces, list formatting, and whitespace spacing
-    text = re.sub(r'[ \t]+', ' ', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'^\s*[#\s\-:=]+\s*$', '', text, flags=re.MULTILINE)
+    # 6. Fix Mojibake encoding artifacts (â€™, â€œ, â€¢, â„¢) & normalize quotes
+    from scripts.fetch_real_unabridged_sec_filings import fix_sec_mojibake_encoding
+    text = fix_sec_mojibake_encoding(text)
     return text.strip()
 
 

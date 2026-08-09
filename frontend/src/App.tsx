@@ -63,6 +63,69 @@ export function App() {
     }
   }, [activeSessionId]);
 
+  // Helper function to consolidate grounded source chunks across all turns in a session thread
+  const aggregateThreadResponse = (
+    turns?: Array<{ metadata?: { last_response?: AnalysisResponse; response?: AnalysisResponse } }>,
+    latestResponse?: AnalysisResponse | null,
+    currentLastResp?: AnalysisResponse | null
+  ): AnalysisResponse | null => {
+    const allChunks: any[] = [];
+    const allCitations: string[] = [];
+    const seenKeys = new Set<string>();
+    let primaryTicker = 'SEC';
+
+    const addPayload = (resp?: AnalysisResponse | null) => {
+      if (!resp) return;
+      if (resp.ticker && resp.ticker !== 'SEC') primaryTicker = resp.ticker;
+      if (resp.citations && Array.isArray(resp.citations)) {
+        resp.citations.forEach((c) => {
+          if (c && !allCitations.includes(c)) allCitations.push(c);
+        });
+      }
+      const chunks = resp.hybrid_search_result?.text_chunks || [];
+      chunks.forEach((chunk) => {
+        const key = chunk.gcs_uri || `${chunk.company_name}_${chunk.fiscal_year}_${chunk.section}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          allChunks.push(chunk);
+        }
+      });
+    };
+
+    if (turns && turns.length > 0) {
+      turns.forEach((t) => {
+        addPayload(t.metadata?.last_response || t.metadata?.response);
+      });
+    }
+
+    if (currentLastResp) {
+      addPayload(currentLastResp);
+    }
+
+    if (latestResponse) {
+      addPayload(latestResponse);
+    }
+
+    if (allChunks.length === 0 && !latestResponse) return null;
+
+    const base: Partial<AnalysisResponse> = latestResponse || currentLastResp || {};
+
+    return {
+      is_success: true,
+      query_type: base.query_type || 'financial_summary',
+      ticker: base.ticker || primaryTicker,
+      tickers: base.tickers || [primaryTicker],
+      narrative: base.narrative || '',
+      citations: allCitations,
+      ...base,
+      hybrid_search_result: {
+        text_chunks: allChunks,
+        grounded_citations: allCitations,
+        query_type: base.query_type || 'financial_summary',
+      },
+    };
+  };
+
   // Load session turns and last response state when active session changes
   const loadSessionDetails = useCallback(async (sessionId: string) => {
     if (!sessionId) return;
@@ -71,7 +134,6 @@ export function App() {
       if (!res.ok) return;
       const detail: SessionDetail = await res.json();
 
-      let effectiveLastResp: AnalysisResponse | null = detail.last_response || null;
       const loadedMsgs: ChatMessage[] = [];
 
       if (detail.turns && detail.turns.length > 0) {
@@ -95,18 +157,13 @@ export function App() {
             });
           }
         });
-
-        if (!effectiveLastResp) {
-          const turnWithResp = [...detail.turns].reverse().find((t) => t.metadata?.last_response || t.metadata?.response);
-          if (turnWithResp) {
-            effectiveLastResp = turnWithResp.metadata?.last_response || turnWithResp.metadata?.response || null;
-          }
-        }
       }
+
+      const consolidated = aggregateThreadResponse(detail.turns, detail.last_response);
 
       const combined = [WELCOME_MESSAGE, ...loadedMsgs];
       setMessages(combined);
-      setLastResponse(effectiveLastResp);
+      setLastResponse(consolidated);
     } catch (err) {
       console.error(`Failed to load session ${sessionId}:`, err);
     }
@@ -296,7 +353,7 @@ export function App() {
       setActiveSessionId((currentActiveId) => {
         if (currentActiveId === targetSessionId) {
           setMessages((prev) => [...prev, agentMsg]);
-          setLastResponse(data);
+          setLastResponse((prevResp) => aggregateThreadResponse(undefined, data, prevResp));
         }
         return currentActiveId;
       });

@@ -225,7 +225,7 @@ class FinancialAnalystAgent:
 
 INSTRUCTIONS:
 1. Directly answer the user prompt above by dynamically invoking your tools (query_bigquery_financial_metrics_tool, search_tool, calculate_financial_variance_tool) as needed.
-2. Determine dynamically if visual UI components (charts, metrics, tables) add value for this response. If visual representation is helpful, include an ```a2ui JSON block using supported catalog components. If visuals are not appropriate (e.g. general disclosures, policy questions, or unavailable data), respond purely with grounded text and citations.
+2. For financial performance, period-over-period variance analysis (e.g. 2022 vs 2023), or company comparisons, you MUST append an ```a2ui JSON block containing visual components (MetricsChart, FinancialTable, MetricCard) at the end of your response. Only omit visuals for pure qualitative risk factor queries.
 """
 
         log_tool_execution("adk_runner_execution", "intent", {"model": self.reasoning_model, "prompt": user_prompt})

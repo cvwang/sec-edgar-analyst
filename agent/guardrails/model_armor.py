@@ -66,6 +66,8 @@ class ModelArmorGuard:
         self.unavailable_policy = getattr(
             settings, "model_armor_unavailable_policy", "fail_closed"
         ).lower()
+        if getattr(settings, "model_armor_fail_open", False):
+            self.unavailable_policy = "fail_open"
         self.offline_mode = getattr(settings, "model_armor_offline_mode", False)
 
         self.template_path = (
@@ -133,10 +135,11 @@ class ModelArmorGuard:
 
         try:
             response = self._call_with_retry(
-                lambda: client.sanitize_user_prompt(request=request, timeout=5.0)
+                lambda: client.sanitize_user_prompt(request=request, timeout=10.0)
             )
             return self._parse_sdk_response(response, stage="ingress")
         except Exception as err:
+            self._client = None  # Reset stale gRPC channel on connection failure
             return self._handle_outage(stage="ingress", error=err, text=prompt)
 
     def sanitize_model_response(self, model_response_text: str) -> ModelArmorResult:
@@ -161,10 +164,11 @@ class ModelArmorGuard:
 
         try:
             response = self._call_with_retry(
-                lambda: client.sanitize_model_response(request=request, timeout=5.0)
+                lambda: client.sanitize_model_response(request=request, timeout=10.0)
             )
             return self._parse_sdk_response(response, stage="egress")
         except Exception as err:
+            self._client = None  # Reset stale gRPC channel on connection failure
             return self._handle_outage(stage="egress", error=err, text=model_response_text)
 
     def _handle_outage(

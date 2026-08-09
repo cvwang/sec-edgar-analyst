@@ -2,6 +2,9 @@
 
 Grounded exclusively in Google Cloud Storage (gs://sec-analyst-sec-reports/filings/) and GCP Vertex AI Search.
 Zero local disk dependencies.
+
+TODO(RAG-06): Re-index SEC corpus filing chunks with clean Markdown/HTML structural formatting
+for enhanced rendering in the UI split-pane context drawer.
 """
 
 import os

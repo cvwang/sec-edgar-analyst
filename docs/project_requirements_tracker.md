@@ -9,10 +9,10 @@
 
 ## 📊 Feature & Requirement Tracking Summary
 
-* **Total Tracked Requirements**: 36
+* **Total Tracked Requirements**: 37
 * **Completed & Verified (✅)**: 32
 * **In Progress / Active Auditing & Setup (🟡)**: 4 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; SEC-07: Zero Hardcoded Tickers & Year Fallbacks Cleanup; EVAL-04: Agent Evaluation Robustness & Capstone Presentation Evals Focus)
-* **Not Started / Upcoming / TODO (🔴)**: 0
+* **Not Started / Upcoming / TODO (🔴)**: 1 (UI-05: Strict Ticker-to-Source Citation Mapping & Multi-Company Drawer Filtering)
 
 ---
 
@@ -60,6 +60,7 @@
 | **UI-02** | **Human-In-The-Loop Export Stop**: Explicit approval modal required before exporting reports to GCS bucket. (`fsi_tdd.md` § 3.1) | `frontend/src/components/ExportModal.tsx`, `agent/api.py` | ✅ **Completed** | Implemented `/api/v1/export` endpoint requiring `human_approved: true` payload confirmation. |
 | **UI-03** | **Longitudinal Thematic Shift Tracking**: Multi-year trend analysis for specific topics (e.g. AI risk factors from 2022-2024). (`fsi_scoping.md` § Project Overview) | `agent/orchestrator.py`, `agent/subagents/search_subagent.py` | ✅ **Completed** | Handled via dynamic SEC filings search subagent and multi-turn context retention. |
 | **UI-04** | **Grounded Context Highlighting & Section Links**: Inline response citations directly linked and auto-scrolled to highlighted sections in the grounded text source drawer. | `frontend/src/components/SourceDrawer.tsx`, `frontend/src/components/ChatStream.tsx` | ✅ **Completed** | Implemented 1:1 citation badge linking, auto-scroll positioning, and active yellow sentence highlighting for referenced 10-K passages in `SourceDrawer.tsx`. |
+| **UI-05** | **Strict Ticker-to-Source Citation Mapping & Multi-Company Drawer Filtering (TODO)**: Ensure inline citation badges route strictly to their corresponding company's 10-K source document and text content in peer comparison / multi-entity queries (preventing cross-company citation mislinks, e.g., MSFT citation opening NVDA source text). | `frontend/src/components/SourceDrawer.tsx`, `frontend/src/components/ChatStream.tsx`, `agent/orchestrator.py` | 🔴 **TODO** | Planned enhancement to enforce exact 1:1 ticker and GCS document matching for citation badge click handlers in multi-company comparison scenarios. |
 
 ---
 

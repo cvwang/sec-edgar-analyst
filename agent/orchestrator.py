@@ -218,14 +218,11 @@ class FinancialAnalystAgent:
         history_context = f"\nCOMPACTED HISTORY CONTEXT:\n{context_summary}\n" if context_summary else ""
         user_q_str = f"USER PROMPT: {user_prompt}" if user_prompt else "USER REQUEST: Analyze financial filing data."
 
-        prompt = f"""
-{SYSTEM_CONSTITUTION}
-{history_context}
-{user_q_str}
+        prompt = f"""{history_context}{user_q_str}
 
-INSTRUCTIONS:
-1. Directly answer the user prompt above by dynamically invoking your tools (query_bigquery_financial_metrics_tool, search_tool, calculate_financial_variance_tool) as needed.
-2. For financial performance, period-over-period variance analysis (e.g. 2022 vs 2023), or company comparisons, you MUST append an ```a2ui JSON block containing visual components (MetricsChart, FinancialTable, MetricCard) at the end of your response. Only omit visuals for pure qualitative risk factor queries.
+INSTRUCTIONS FOR THIS RESPONSE:
+1. Directly answer the user prompt by invoking your tools (query_bigquery_financial_metrics_tool, search_tool, calculate_financial_variance_tool) as needed.
+2. Structure your final output into 2 sections: PART 1 (Grounded Narrative with inline citations) and PART 2 (Mandatory ```a2ui JSON visual payload containing MetricsChart and FinancialTable components).
 """
 
         log_tool_execution("adk_runner_execution", "intent", {"model": self.reasoning_model, "prompt": user_prompt})
@@ -247,20 +244,20 @@ INSTRUCTIONS:
                 )
 
             content = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-            final_text = ""
+            text_parts = []
             async for event in self.runner.run_async(
                 user_id="analyst_user", session_id=session.id, new_message=content
             ):
                 if event.content and event.content.parts:
                     for part in event.content.parts:
                         if part.text:
-                            final_text = part.text
+                            text_parts.append(part.text)
                         fn_resp = getattr(part, "function_response", None)
                         if fn_resp and getattr(fn_resp, "name", None) == "calculate_financial_variance_tool":
                             resp_dict = getattr(fn_resp, "response", {})
                             if isinstance(resp_dict, dict):
                                 captured_tool_result = resp_dict.get("result", resp_dict)
-            return final_text
+            return "\n\n".join(text_parts)
 
         runner_error = None
         try:

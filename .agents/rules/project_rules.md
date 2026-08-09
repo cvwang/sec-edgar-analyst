@@ -30,8 +30,8 @@ Note: Engineering standards defined in [.agents/rules/project_engineering_standa
 - **Pytest**: Run test suites using `pytest` before finalizing changes (`pytest eval/`).
 - **Evaluation Harness**: Ensure changes to agent tools or prompt routing do not regress scores against `eval/golden_dataset.json`.
 
-## Environment & Secrets
-- Never hardcode credentials, GCP project IDs, or API keys in source files. Use `.env` or environment variables managed via `agent/config.py`.
+## Dynamic Data & Zero Hardcoding Rules
+- **No Hardcoded Tickers or Fallback Defaults**: Never hardcode company ticker symbols (e.g. AAPL, NVDA, MSFT), static company mapping dictionaries, or fallback ticker defaults in orchestrators, tools, API handlers, or UI components. All company tickers must be dynamically parsed from SEC corpus metadata, BigQuery tool outputs, or explicit LLM response payloads.
 
 ## Git & Version Control
 - **No Automatic Commits**: Code updates must never be committed automatically. Only commit changes when explicitly asked by the user.

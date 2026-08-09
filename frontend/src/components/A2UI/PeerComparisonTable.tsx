@@ -12,14 +12,26 @@ export const PeerComparisonTable: React.FC<PeerComparisonTableProps> = ({
   peerTicker,
   year,
 }) => {
-  let safeTicker = typeof ticker === 'string' ? ticker.trim() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim() : (ticker ? String(ticker).trim() : 'NVDA'));
-  let safePeerTicker = typeof peerTicker === 'string' ? peerTicker.trim() : (Array.isArray(peerTicker) && peerTicker.length > 0 ? String(peerTicker[0]).trim() : (peerTicker ? String(peerTicker).trim() : 'AAPL'));
+  let rawTicker = typeof ticker === 'string' ? ticker.trim().toUpperCase() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim().toUpperCase() : (ticker ? String(ticker).trim().toUpperCase() : ''));
+  let rawPeer = typeof peerTicker === 'string' ? peerTicker.trim().toUpperCase() : (Array.isArray(peerTicker) && peerTicker.length > 0 ? String(peerTicker[0]).trim().toUpperCase() : (peerTicker ? String(peerTicker).trim().toUpperCase() : ''));
+
+  let safeTicker = rawTicker;
+  let safePeerTicker = rawPeer;
+
+  if (rawTicker.includes(',')) {
+    const parts = rawTicker.split(',').map((s) => s.trim().toUpperCase());
+    safeTicker = parts[0];
+    if (parts[1]) safePeerTicker = parts[1];
+  }
+
   const safeYear = year ? String(year).trim() : '2023';
 
-  if (!safePeerTicker && safeTicker.includes(',')) {
-    const parts = safeTicker.split(',').map((s) => s.trim());
-    safeTicker = parts[0];
-    safePeerTicker = parts[1] || 'AAPL';
+  if (!safeTicker || !safePeerTicker || safeTicker === safePeerTicker) {
+    return (
+      <div className="my-3 p-3 text-xs rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-400">
+        Peer comparison table requires two distinct company tickers (e.g. ticker: "{safeTicker || 'PRIMARY'}", peer_ticker: "PEER").
+      </div>
+    );
   }
 
   const { data, isLoading, error } = useFetchPeerMetrics(safeTicker, safePeerTicker, safeYear);

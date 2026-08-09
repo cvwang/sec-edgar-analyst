@@ -248,7 +248,7 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
         );
 
       case 'FinancialTable': {
-        const hasPeer = comp.peer_ticker || (typeof ticker === 'string' && ticker.includes(',')) || (start_year && end_year && String(start_year).trim() === String(end_year).trim());
+        const hasPeer = comp.peer_ticker || (typeof ticker === 'string' && ticker.includes(','));
         if (hasPeer) {
           return (
             <div key={id} className="w-full">
@@ -272,6 +272,7 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
           <div key={id} className="w-full">
             <FinancialMetricsChart
               ticker={ticker}
+              peerTicker={comp.peer_ticker}
               startYear={start_year}
               endYear={end_year}
               metricType={metric_type || 'all'}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFetchMetrics } from '../../hooks/useQueries';
+import { useFetchMetrics, useFetchPeerMetrics } from '../../hooks/useQueries';
 
 interface FinancialMetricsChartProps {
   ticker: any;
@@ -151,17 +151,125 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
   );
 };
 
+interface FinancialMetricsChartProps {
+  ticker: any;
+  peerTicker?: any;
+  startYear: any;
+  endYear: any;
+  metricType?: 'all' | 'revenue' | 'net_income' | 'operating_margin';
+}
+
 export const FinancialMetricsChart: React.FC<FinancialMetricsChartProps> = ({
   ticker,
+  peerTicker,
   startYear,
   endYear,
   metricType = 'all',
 }) => {
-  const safeTicker = typeof ticker === 'string' ? ticker.trim() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim() : (ticker ? String(ticker).trim() : 'AAPL'));
+  let rawTicker = typeof ticker === 'string' ? ticker.trim().toUpperCase() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim().toUpperCase() : (ticker ? String(ticker).trim().toUpperCase() : ''));
+  let rawPeer = typeof peerTicker === 'string' ? peerTicker.trim().toUpperCase() : (Array.isArray(peerTicker) && peerTicker.length > 0 ? String(peerTicker[0]).trim().toUpperCase() : (peerTicker ? String(peerTicker).trim().toUpperCase() : ''));
+
+  let safeTicker = rawTicker;
+  let safePeerTicker = rawPeer;
+
+  if (rawTicker.includes(',')) {
+    const parts = rawTicker.split(',').map((s) => s.trim().toUpperCase());
+    safeTicker = parts[0];
+    if (parts[1]) safePeerTicker = parts[1];
+  }
+
+  const isPeerMode = Boolean(safePeerTicker && safePeerTicker !== safeTicker);
   const safeStartYear = startYear ? String(startYear).trim() : '2022';
   const safeEndYear = endYear ? String(endYear).trim() : '2023';
 
-  const { data, isLoading, error } = useFetchMetrics(safeTicker, safeStartYear, safeEndYear);
+  const singleMetrics = useFetchMetrics(safeTicker, safeStartYear, safeEndYear);
+  const peerMetrics = useFetchPeerMetrics(safeTicker, safePeerTicker, safeEndYear);
+
+  if (isPeerMode) {
+    const { data: pData, isLoading: pLoading, error: pError } = peerMetrics;
+    if (pLoading) {
+      return (
+        <div className="w-full flex items-center justify-center p-6 border border-dashed border-slate-800 rounded-xl bg-slate-900/40">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+            <span className="text-xs text-slate-400 animate-pulse">Generating peer comparison bar charts...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (pError || !pData?.primary || !pData?.peer) {
+      return (
+        <div className="text-xs text-rose-400 p-3 border rounded-xl border-rose-500/30 bg-rose-950/20">
+          Failed to fetch peer chart metrics for {safeTicker} vs {safePeerTicker}.
+        </div>
+      );
+    }
+
+    const { primary, peer } = pData;
+    const yrShort = safeEndYear.slice(-2);
+    const showRevenue = metricType === 'all' || metricType === 'revenue';
+    const showNetIncome = metricType === 'all' || metricType === 'net_income';
+    const showMargin = metricType === 'all' || metricType === 'operating_margin';
+
+    const revDiff = primary.revenue - peer.revenue;
+    const revRatio = peer.revenue > 0 ? (primary.revenue / peer.revenue).toFixed(1) : 'N/A';
+    const revRatioPeer = primary.revenue > 0 ? (peer.revenue / primary.revenue).toFixed(1) : 'N/A';
+
+    const marginDiffBps = Math.round((primary.operating_margin - peer.operating_margin) * 100);
+
+    const netDiff = primary.net_income - peer.net_income;
+    const netRatio = peer.net_income > 0 ? (primary.net_income / peer.net_income).toFixed(1) : 'N/A';
+    const netRatioPeer = primary.net_income > 0 ? (peer.net_income / primary.net_income).toFixed(1) : 'N/A';
+
+    return (
+      <div className="my-3 flex flex-col gap-3">
+        <div className="flex flex-row gap-3 flex-wrap w-full">
+          {showRevenue && (
+            <MiniBarChart
+              label="Revenue"
+              startVal={primary.revenue || 0}
+              endVal={peer.revenue || 0}
+              startLabel={`'${yrShort} ${primary.ticker}`}
+              endLabel={`'${yrShort} ${peer.ticker}`}
+              formattedStart={`$${((primary.revenue || 0) / 1e9).toFixed(1)}B`}
+              formattedEnd={`$${((peer.revenue || 0) / 1e9).toFixed(1)}B`}
+              changeLabel={revDiff >= 0 ? `${primary.ticker} +${revRatio}x` : `${peer.ticker} +${revRatioPeer}x`}
+              trend={revDiff >= 0 ? 'up' : 'down'}
+            />
+          )}
+          {showMargin && (
+            <MiniBarChart
+              label="Operating Margin"
+              startVal={primary.operating_margin || 0}
+              endVal={peer.operating_margin || 0}
+              startLabel={`'${yrShort} ${primary.ticker}`}
+              endLabel={`'${yrShort} ${peer.ticker}`}
+              formattedStart={`${(primary.operating_margin || 0).toFixed(1)}%`}
+              formattedEnd={`${(peer.operating_margin || 0).toFixed(1)}%`}
+              changeLabel={marginDiffBps >= 0 ? `${primary.ticker} +${marginDiffBps} bps` : `${peer.ticker} +${Math.abs(marginDiffBps)} bps`}
+              trend={marginDiffBps >= 0 ? 'up' : 'down'}
+            />
+          )}
+          {showNetIncome && (
+            <MiniBarChart
+              label="Net Income"
+              startVal={primary.net_income || 0}
+              endVal={peer.net_income || 0}
+              startLabel={`'${yrShort} ${primary.ticker}`}
+              endLabel={`'${yrShort} ${peer.ticker}`}
+              formattedStart={`$${((primary.net_income || 0) / 1e9).toFixed(1)}B`}
+              formattedEnd={`$${((peer.net_income || 0) / 1e9).toFixed(1)}B`}
+              changeLabel={netDiff >= 0 ? `${primary.ticker} +${netRatio}x` : `${peer.ticker} +${netRatioPeer}x`}
+              trend={netDiff >= 0 ? 'up' : 'down'}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const { data, isLoading, error } = singleMetrics;
 
   if (isLoading) {
     return (

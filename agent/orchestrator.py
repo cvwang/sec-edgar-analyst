@@ -312,9 +312,23 @@ INSTRUCTIONS FOR THIS RESPONSE:
 
         citations = [c["citation"] for c in grounded_chunks if c.get("citation")]
 
-        # Extract tickers & fiscal years dynamically from user prompt, grounded RAG chunks, tool outputs, and citations
+        # Extract tickers & fiscal years dynamically from model A2UI payload, grounded RAG chunks, tool outputs, and citations (zero hardcoding)
         tickers = []
         years = [int(y) for y in re.findall(r'\b(202[0-9])\b', user_prompt)]
+
+        # 0. Dynamically extract tickers from A2UI code block components emitted by LLM
+        a2ui_matches = re.findall(r'```a2ui([\s\S]*?)```', narrative, re.IGNORECASE)
+        for block in a2ui_matches:
+            try:
+                payload = json.loads(block.trim() if hasattr(block, 'trim') else block.strip())
+                for msg in payload:
+                    for comp in msg.get("updateComponents", {}).get("components", []):
+                        for k in ["ticker", "peer_ticker"]:
+                            val = comp.get(k)
+                            if isinstance(val, str) and val.strip().upper() not in tickers:
+                                tickers.append(val.strip().upper())
+            except Exception:
+                pass
 
         # 1. From grounded RAG chunks
         for c in grounded_chunks:

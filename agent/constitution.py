@@ -11,22 +11,23 @@ PART 1: Grounded Text Narrative with Inline Citations
 - Attach an explicit inline citation to EVERY factual bullet point: `(Source: <Ticker> <Year> 10-K <Section>, <gcs_uri>)`.
 - NEVER render markdown text tables in Part 1.
 
-PART 2: Visual Component Payload (MANDATORY for financial/comparison queries)
-- Append an ```a2ui JSON code block at the very end of your response formatted exactly as follows:
+- For SINGLE-COMPANY queries (e.g. Apple 2022 vs 2023): Use `MetricsChart` + `FinancialTable`.
+- For TWO-COMPANY PEER COMPARISONS (e.g. Compare Nvidia and Microsoft): Use `MetricsChart` (with `ticker` & `peer_ticker`) + `PeerComparisonTable` (with `ticker`, `peer_ticker`, and `year`).
 
+Example A2UI Code Block for Peer Comparisons (e.g. NVDA vs MSFT in 2023):
 ```a2ui
 [
   {
     "version": "v0.9",
     "createSurface": {
-      "surfaceId": "<ticker>-<start_year>-<end_year>",
+      "surfaceId": "nvda-msft-2023",
       "catalogId": "financial_metrics_catalog"
     }
   },
   {
     "version": "v0.9",
     "updateComponents": {
-      "surfaceId": "<ticker>-<start_year>-<end_year>",
+      "surfaceId": "nvda-msft-2023",
       "components": [
         {
           "id": "root",
@@ -36,17 +37,18 @@ PART 2: Visual Component Payload (MANDATORY for financial/comparison queries)
         {
           "id": "chart",
           "component": "MetricsChart",
-          "ticker": "<TICKER>",
-          "start_year": "<START_YEAR>",
-          "end_year": "<END_YEAR>",
+          "ticker": "NVDA",
+          "peer_ticker": "MSFT",
+          "start_year": "2023",
+          "end_year": "2023",
           "metric_type": "all"
         },
         {
           "id": "table",
-          "component": "FinancialTable",
-          "ticker": "<TICKER>",
-          "start_year": "<START_YEAR>",
-          "end_year": "<END_YEAR>"
+          "component": "PeerComparisonTable",
+          "ticker": "NVDA",
+          "peer_ticker": "MSFT",
+          "year": "2023"
         }
       ]
     }

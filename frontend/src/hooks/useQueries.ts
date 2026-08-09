@@ -123,11 +123,15 @@ export function useFetchPeerMetrics(ticker: any, peerTicker: any, year: any) {
   let safePeerTicker = typeof peerTicker === 'string' ? peerTicker.trim().toUpperCase() : (Array.isArray(peerTicker) && peerTicker.length > 0 ? String(peerTicker[0]).trim().toUpperCase() : '');
   const safeYear = year ? String(year).trim() : '2023';
 
-  if (!safePeerTicker && safeTicker.includes(',')) {
+  if (safeTicker.includes(',')) {
     const parts = safeTicker.split(',').map((s) => s.trim().toUpperCase());
     safeTicker = parts[0];
-    safePeerTicker = parts[1] || 'AAPL';
+    if (parts[1]) {
+      safePeerTicker = parts[1];
+    }
   }
+
+
 
   const cacheKey = safeTicker && safePeerTicker && safeYear ? `${safeTicker}_PEER_${safePeerTicker}_${safeYear}` : null;
 

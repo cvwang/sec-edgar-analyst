@@ -12,9 +12,17 @@ export const FinancialInlineTable: React.FC<FinancialInlineTableProps> = ({
   startYear,
   endYear,
 }) => {
-  const safeTicker = typeof ticker === 'string' ? ticker.trim() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim() : (ticker ? String(ticker).trim() : 'AAPL'));
+  const safeTicker = typeof ticker === 'string' ? ticker.trim().toUpperCase() : (Array.isArray(ticker) && ticker.length > 0 ? String(ticker[0]).trim().toUpperCase() : (ticker ? String(ticker).trim().toUpperCase() : ''));
   const safeStartYear = startYear ? String(startYear).trim() : '2022';
   const safeEndYear = endYear ? String(endYear).trim() : '2023';
+
+  if (!safeTicker) {
+    return (
+      <div className="my-3 p-3 text-xs rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-400">
+        Company ticker not specified for financial metrics table.
+      </div>
+    );
+  }
 
   const { data, isLoading, error } = useFetchMetrics(safeTicker, safeStartYear, safeEndYear);
 

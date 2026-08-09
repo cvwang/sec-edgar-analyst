@@ -34,7 +34,10 @@ Note: Engineering standards defined in [.agents/rules/project_engineering_standa
 - **No Hardcoded Tickers or Fallback Defaults**: Never hardcode company ticker symbols (e.g. AAPL, NVDA, MSFT), static company mapping dictionaries, or fallback ticker defaults in orchestrators, tools, API handlers, or UI components. All company tickers must be dynamically parsed from SEC corpus metadata, BigQuery tool outputs, or explicit LLM response payloads.
 
 ## Git & Version Control
-- **No Automatic Commits**: Code updates must never be committed automatically. Only commit changes when explicitly asked by the user.
-- **Multi-Agent Worktree Isolation**: When handling a prompt while another agent thread is active, create a dedicated Git worktree (`git worktree add -b <branch> <path> main`) for task isolation. See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
+- **No Automatic Commits**: Code updates must never be committed automatically. Only commit changes when explicitly instructed by the user.
+- **Git Branching & Multi-Agent Worktree Flow**:
+  - **Main Repo Unused (Idle)**: Create a dedicated feature branch directly in the main repository (`git checkout -b feature/<task-name>`).
+  - **Main Repo In Use (Active Multi-Agent)**: Create a dedicated Git worktree (`git worktree add -b feature/<task-name> ../<worktree-dir> main`) to isolate edits, dependencies, dev servers, and test runs.
+  See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
 
 

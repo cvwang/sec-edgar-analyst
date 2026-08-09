@@ -20,5 +20,8 @@ All requirements, specifications, and scope decisions MUST be evaluated against:
 5. **Secrets**: Use `.env` or environment configuration; never hardcode credentials.
 6. **Git Commits**: Never commit code updates automatically. Only commit changes when explicitly instructed by the user.
 7. **Zero Hardcoding/Fallbacks**: Never hardcode ticker symbols, company maps, or fallback ticker defaults in orchestrators, tools, or frontend UI components. All company tickers must be dynamically resolved from SEC corpus metadata, BigQuery tool outputs, or explicit LLM payload parameters.
-8. **Multi-Agent Worktree Isolation**: If a prompt is received while another agent thread is actively running in the main repo, a dedicated git worktree (`git worktree add -b ...`) must be created for the new prompt to avoid work overlaps and file conflict issues. See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
+8. **Git Branching & Multi-Agent Worktree Flow**: When a new prompt or feature request is received:
+   - If the main repository folder is **unused (idle)**, create a new feature branch directly in the main repository (`git checkout -b feature/...`).
+   - If the main repository folder is **in use** (another thread or active task is operating on a branch), create a dedicated Git worktree (`git worktree add -b feature/... ../<worktree-dir> main`) for task isolation.
+   See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
 

@@ -31,7 +31,7 @@ Note: Engineering standards defined in [.agents/rules/project_engineering_standa
 - **Evaluation Harness**: Ensure changes to agent tools or prompt routing do not regress scores against `eval/golden_dataset.json`.
 
 ## Dynamic Data & Zero Hardcoding Rules
-- **No Hardcoded Tickers or Fallback Defaults**: Never hardcode company ticker symbols (e.g. AAPL, NVDA, MSFT), static company mapping dictionaries, or fallback ticker defaults in orchestrators, tools, API handlers, or UI components. All company tickers must be dynamically parsed from SEC corpus metadata, BigQuery tool outputs, or explicit LLM response payloads.
+- **No Hardcoded Tickers or Fallback Years**: Never hardcode company ticker symbols (e.g. AAPL, NVDA, MSFT), static company mapping dictionaries, fallback ticker defaults, or fallback fiscal years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) in orchestrators, tools, API schemas, or frontend UI components. All company tickers and target fiscal years must be dynamically parsed from SEC corpus metadata, BigQuery tool outputs, or explicit user query payloads.
 
 ## Git & Version Control
 - **No Automatic Commits**: Code updates must never be committed automatically. Only commit changes when explicitly instructed by the user.

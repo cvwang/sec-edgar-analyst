@@ -19,6 +19,9 @@ Never insert silent default fallbacks, synthetic text fallbacks, or dummy values
    - Do NOT insert silent default pricing rates or arbitrary baseline cost estimates when an entity (e.g., model name, SKU, or service tier) is unrecognized.
    - Flag unknown entities explicitly (`is_pricing_known = False`, `cost = 0.0`) and log an explicit warning/alert rather than masking them with silent rate guesses.
 
-5. **Tracking & Audit Log**:
+5. **Zero Hardcoded Tickers & Year Fallbacks**:
+   - Do NOT default ticker symbols (e.g. `AAPL`, `NVDA`, `MSFT`) or target fiscal years (e.g. `2023`, `[2023]`, `current_year=2023`) as fallbacks in orchestrators, tools, API request models, or RAG queries. Eviscerate all hardcoded default fallbacks across the codebase.
+
+6. **Tracking & Audit Log**:
    - Refer to [`docs/project_requirements_tracker.md`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/project_requirements_tracker.md) item **SEC-07** for ongoing compliance tracking and auditing of zero-hardcoding rules across the codebase.
 

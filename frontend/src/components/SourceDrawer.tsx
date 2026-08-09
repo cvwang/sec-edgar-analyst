@@ -376,9 +376,8 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     const rawQuery = activeSourceQuery?.query;
     const activeTicker = activeSourceQuery?.ticker?.toUpperCase().trim();
     const activeGcsUri = activeSourceQuery?.gcsUri?.toLowerCase().trim();
-    const targetCiteId = activeSourceQuery?.citeId?.toLowerCase().trim();
 
-    if ((!rawQuery && !activeGcsUri && !activeTicker && !targetCiteId) || consolidatedChunks.length === 0) return;
+    if ((!rawQuery && !activeGcsUri && !activeTicker) || consolidatedChunks.length === 0) return;
 
     const queryLower = (rawQuery || '').toLowerCase().trim();
     const queryParts = (rawQuery || '').split('|||').map((p) => p.toLowerCase().trim());
@@ -388,41 +387,15 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
       setSelectedCompanyFilter(activeTicker);
     }
 
-    // 0. Stage 0: Direct Citation ID match in chunk content
-    let matchIdx = -1;
-    if (targetCiteId) {
-      matchIdx = consolidatedChunks.findIndex((chunk) => {
-        const content = (chunk.content || '').toLowerCase();
-        const excerpt = (chunk.highlight_excerpt || '').toLowerCase();
-        return (
-          content.includes(`data-cite-id="${targetCiteId}"`) ||
-          content.includes(`id="${targetCiteId}"`) ||
-          content.includes(`cite: ${targetCiteId}`) ||
-          excerpt.includes(`cite: ${targetCiteId}`)
-        );
-      });
-    }
-
     // 1. Stage 1: Match by exact GCS URI or filename
-    if (matchIdx === -1) {
-      matchIdx = consolidatedChunks.findIndex((chunk) => {
-        const comp = (chunk.company_name || chunk.ticker || '').toLowerCase();
-        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
-        if (activeTicker && chkTicker && chkTicker !== activeTicker && !comp.includes(activeTicker.toLowerCase())) {
-          return false;
-        }
-
-        const gcs = (chunk.gcs_uri || '').toLowerCase();
-        if (activeGcsUri && gcs && (gcs === activeGcsUri || gcs.endsWith(activeGcsUri))) {
-          return true;
-        }
-        const filename = gcs.split('/').pop() || '';
-        if (filename && filename.length > 4) {
-          return queryParts.some((p) => p && p.includes(filename.toLowerCase()));
-        }
-        return false;
-      });
-    }
+    let matchIdx = consolidatedChunks.findIndex((chunk) => {
+      const gcs = (chunk.gcs_uri || '').toLowerCase();
+      if (activeGcsUri && gcs && (gcs === activeGcsUri || gcs.includes(activeGcsUri))) {
+        return true;
+      }
+      const filename = gcs.split('/').pop() || '';
+      return queryParts.some((p) => p && (gcs.includes(p) || (filename && p.includes(filename))));
+    });
 
     // 2. Stage 2: Strict Ticker + Fiscal Year + SEC Section
     if (matchIdx === -1) {
@@ -498,24 +471,6 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
       const targetIdx = matchIdx;
       const scrollAndPulseMark = () => {
-        // Priority Direct Target: Global DOM query for exact citeId tag
-        if (targetCiteId) {
-          const globalMark =
-            document.querySelector(`aside [data-cite-id="${targetCiteId}"]`) ||
-            document.querySelector(`aside #${targetCiteId}`);
-          if (globalMark) {
-            const cardEl = globalMark.closest('.p-3.5') as HTMLElement;
-            if (cardEl) {
-              cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            (globalMark as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
-            globalMark.classList.remove('citation-mark-pulse');
-            void (globalMark as HTMLElement).offsetWidth;
-            globalMark.classList.add('citation-mark-pulse');
-            return;
-          }
-        }
-
         const el = cardRefs.current[targetIdx];
         if (!el) return;
 
@@ -526,8 +481,8 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
         const markEls = el.querySelectorAll('mark');
         if (markEls && markEls.length > 0) {
           let bestMark: HTMLElement | null = null;
-          let maxScore = -1;
 
+          const targetCiteId = activeSourceQuery?.citeId;
           if (targetCiteId) {
             const directMatch =
               el.querySelector(`[data-cite-id="${targetCiteId}"]`) ||
@@ -538,11 +493,12 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
           }
 
           if (!bestMark) {
+            let highestScore = -1;
             markEls.forEach((markNode) => {
               const mText = markNode.textContent || '';
               const score = computeMarkScore(mText, rawQuery || '');
-              if (score > maxScore) {
-                maxScore = score;
+              if (score > highestScore) {
+                highestScore = score;
                 bestMark = markNode as HTMLElement;
               }
             });
@@ -554,29 +510,22 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
           bestMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-          markEls.forEach((m) => {
-            const mText = m.textContent || '';
-            const score = computeMarkScore(mText, rawQuery || '');
-            m.classList.remove('citation-mark-pulse');
-            if (m === bestMark || (score > 0 && maxScore > 0 && score >= maxScore - 2)) {
-              void m.offsetWidth;
-              m.classList.add('citation-mark-pulse');
-            }
-          });
+          markEls.forEach((m) => m.classList.remove('citation-mark-pulse'));
+          // Force DOM reflow to restart CSS keyframe animation on consecutive clicks
+          void bestMark.offsetWidth;
+          bestMark.classList.add('citation-mark-pulse');
         }
       };
 
       requestAnimationFrame(scrollAndPulseMark);
-      const timerId1 = setTimeout(scrollAndPulseMark, 100);
-      const timerId2 = setTimeout(scrollAndPulseMark, 300);
+      const timerId = setTimeout(scrollAndPulseMark, 120);
 
       const clearTimer = setTimeout(() => {
         setHighlightedIdx(null);
       }, 5000);
 
       return () => {
-        clearTimeout(timerId1);
-        clearTimeout(timerId2);
+        clearTimeout(timerId);
         clearTimeout(clearTimer);
       };
     }

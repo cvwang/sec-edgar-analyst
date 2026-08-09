@@ -3,7 +3,7 @@
 Grounded exclusively in Google Cloud Storage (gs://sec-analyst-sec-reports/filings/) and GCP Vertex AI Search.
 Zero local disk dependencies.
 
-TODO(RAG-06): Re-index SEC corpus filing chunks with clean Markdown/HTML structural formatting
+Feature (RAG-06): SEC corpus filing chunks are formatted with clean Markdown/HTML structural formatting
 for enhanced rendering in the UI split-pane context drawer.
 """
 
@@ -219,38 +219,49 @@ class SECDocumentChunk(BaseModel):
 
 
 def clean_sec_document_text(raw_text: str) -> str:
-    """Strips redundant header preambles, section banners, URLs, and HTML entities while preserving paragraph breaks."""
+    """Strips redundant header preambles, section banners, URLs, and HTML entities while structuring into clean Markdown/HTML."""
     if not raw_text:
         return ""
 
     text = raw_text
 
-    # 1. Decode HTML entities
+    # 1. Comprehensive HTML entity decoding
     text = re.sub(r'&\#8212;', ' — ', text)
     text = re.sub(r'&\#8211;', ' – ', text)
     text = re.sub(r'&\#8220;', '"', text)
     text = re.sub(r'&\#8221;', '"', text)
     text = re.sub(r'&\#8217;', "'", text)
+    text = re.sub(r'&\#8226;', ' • ', text)
+    text = re.sub(r'&\#8230;', '...', text)
+    text = re.sub(r'&\#160;|&nbsp;', ' ', text)
+    text = re.sub(r'&quot;', '"', text)
+    text = re.sub(r'&#39;', "'", text)
+    text = re.sub(r'&lt;', '<', text)
+    text = re.sub(r'&gt;', '>', text)
     text = re.sub(r'&\#\d+;', ' ', text)
     text = re.sub(r'&amp;', '&', text)
 
-    # 2. Strip dataset markdown headers and URLs
-    text = re.sub(r'#+\s*REAL UNABRIDGED SEC EDGAR FILING:[^#\n]*', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'#+\s*Source URL:\s*https?://[^\s]*', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'#+\s*Section:\s*Item[^\n]*?(?=(?:ITEM\s+[0-9A-Z]+|The\s+following|You\s+should|[A-Z][a-z]+))', '', text, flags=re.IGNORECASE)
+    # 2. Strip dataset header preambles and URLs
+    text = re.sub(r'#+\s*REAL UNABRIDGED SEC EDGAR FILING:[^#\n]*\n?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'#+\s*Source URL:\s*https?://[^\s]*\n?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'#+\s*Section:\s*Item[^\n]*?\n?', '', text, flags=re.IGNORECASE)
 
-    # 3. Strip redundant section title banners
-    text = re.sub(r'ITEM\s+7\.\s+MANAGEMENT\'S\s+DISCUSSION\s+AND\s+ANALYSIS(?:\s+OF\s+FINANCIAL\s+CONDITION\s+AND\s+RESULTS\s+OF\s+OPERATIONS)?', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'Management\'s\s+Discussion\s+and\s+Analysis(?:\s+\([^\)]*\))?', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'ITEM\s+1A\.\s+RISK\s+FACTORS', '', text, flags=re.IGNORECASE)
+    # 3. Structure ITEM section titles into Markdown headings
+    text = re.sub(r'\bITEM\s+7\.\s+MANAGEMENT\'S\s+DISCUSSION\s+AND\s+ANALYSIS[^\n.]*', '# Item 7. Management\'s Discussion and Analysis (MD&A)', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bITEM\s+1A\.\s+RISK\s+FACTORS', '# Item 1A. Risk Factors', text, flags=re.IGNORECASE)
 
-    # 4. 100% Generic paragraph boundary separation (separate period-to-capital concatenations)
-    text = re.sub(r'([.!?])([A-Z][a-z]{2,})', r'\1\n\n\2', text)
+    # 4. Standardize list bullet markers (e.g. •, ·, (a), (b), (i), (ii)) into Markdown list items
+    text = re.sub(r'(?:^|\n|\s)\((?:[a-z]|\d{1,2}|i|ii|iii|iv|v)\)\s+', '\n- ', text)
+    text = re.sub(r'(?:^|\n|\s)[•·]\s*', '\n- ', text)
 
-    # 5. Normalize newlines: collapse 3+ newlines to double newline
+    # 5. Generic paragraph boundary separation (excluding section titles & abbreviations)
+    text = re.sub(r'(?<!\bItem 1A)(?<!\bItem 1B)(?<!\bItem 7)(?<!\bItem 7A)(?<!\bInc)(?<!\bCorp)(?<!\bU\.S)(?<!\bFY\d\d)(?<!\bNo)(?<!\b\d[A-Z])([.!?])\s+([A-Z][a-z]{2,})', r'\1\n\n\2', text)
+
+    # 6. Normalize spaces, list formatting, and whitespace spacing
+    text = re.sub(r'[ \t]+', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'^\s*[#\s\-:=]+', '', text).strip()
-    return text
+    text = re.sub(r'^\s*[#\s\-:=]+\s*$', '', text, flags=re.MULTILINE)
+    return text.strip()
 
 
 class SECCorpusStore:

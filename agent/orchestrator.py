@@ -18,7 +18,7 @@ from agent.config import settings
 from agent.constitution import SYSTEM_CONSTITUTION
 from agent.tools.calculation_engine import calculate_financial_variance_tool
 from agent.rag.bigquery_store import query_bigquery_financial_metrics_tool
-from agent.rag.sec_corpus import reset_grounded_chunks, get_grounded_chunks, annotate_grounded_highlights_with_llm, search_sec_filing_chunks_tool
+from agent.rag.sec_corpus import reset_grounded_chunks, get_grounded_chunks, add_grounded_chunks, annotate_grounded_highlights_with_llm, search_sec_filing_chunks_tool
 from agent.subagents.search_subagent import search_tool
 from agent.memory.session_store import PersistentSessionStore
 from agent.observability.logging_config import log_tool_execution
@@ -229,8 +229,10 @@ INSTRUCTIONS FOR THIS RESPONSE:
 
         reset_grounded_chunks()
         captured_tool_result = None
+        captured_bq_records: List[dict] = []
+
         async def _run_runner():
-            nonlocal captured_tool_result
+            nonlocal captured_tool_result, captured_bq_records
             try:
                 session = await self.session_service.get_session(
                     app_name="sec_analyst", user_id="analyst_user", session_id=session_id
@@ -253,10 +255,17 @@ INSTRUCTIONS FOR THIS RESPONSE:
                         if part.text:
                             text_parts.append(part.text)
                         fn_resp = getattr(part, "function_response", None)
-                        if fn_resp and getattr(fn_resp, "name", None) == "calculate_financial_variance_tool":
+                        if fn_resp:
+                            fn_name = getattr(fn_resp, "name", None)
                             resp_dict = getattr(fn_resp, "response", {})
                             if isinstance(resp_dict, dict):
-                                captured_tool_result = resp_dict.get("result", resp_dict)
+                                tool_res = resp_dict.get("result", resp_dict)
+                                if fn_name == "calculate_financial_variance_tool":
+                                    captured_tool_result = tool_res
+                                elif fn_name == "query_bigquery_financial_metrics_tool" and isinstance(tool_res, dict) and "ticker" in tool_res:
+                                    captured_bq_records.append(tool_res)
+                                    if not captured_tool_result:
+                                        captured_tool_result = tool_res
             return "\n\n".join(text_parts)
 
         runner_error = None
@@ -267,8 +276,51 @@ INSTRUCTIONS FOR THIS RESPONSE:
             log_tool_execution("adk_runner_execution", "outcome", {"error": runner_error}, status="ERROR")
             narrative = ""
 
+        # Synthesize structured BigQuery Grounded Source Chunks if BigQuery tools were executed
+        for bq_rec in captured_bq_records:
+            tk = bq_rec.get("ticker", "SEC").upper()
+            fy = int(bq_rec.get("fiscal_year", 2023))
+            comp_name = bq_rec.get("company_name", f"{tk} Corp")
+            rev = bq_rec.get("revenue", 0.0)
+            op_inc = bq_rec.get("operating_income", 0.0)
+            net_inc = bq_rec.get("net_income", 0.0)
+
+            bq_chunk = {
+                "chunk_id": f"bq_{tk}_{fy}",
+                "ticker": tk,
+                "company_name": comp_name,
+                "fiscal_year": fy,
+                "section": "GCP BigQuery Structured Financial Metrics",
+                "content": f"### Audited Financial Disclosures (GCP BigQuery)\n| Metric | Reported Value | Period Unit | Source Dataset |\n| --- | --- | --- | --- |\n| Revenue | ${rev:,.2f}M | USD (Millions) | `sec_edgar_financials.financial_metrics` |\n| Operating Income | ${op_inc:,.2f}M | USD (Millions) | `sec_edgar_financials.financial_metrics` |\n| Net Income | ${net_inc:,.2f}M | USD (Millions) | `sec_edgar_financials.financial_metrics` |",
+                "highlight_excerpt": f"Audited FY{fy} Financial Metrics for {tk}: Revenue ${rev:,.2f}M, Operating Income ${op_inc:,.2f}M, Net Income ${net_inc:,.2f}M.",
+                "citation": f"GCP BigQuery (sec_edgar_financials.financial_metrics) [{tk} FY{fy}]",
+                "gcs_uri": f"bq://sec_edgar_financials.financial_metrics/{tk}_{fy}",
+                "source_type": "bigquery",
+            }
+            add_grounded_chunks([bq_chunk])
+
         # Retrieve grounded RAG chunks collected during execution
         raw_chunks = get_grounded_chunks()
+
+        # Automatic SEC Filing Chunk Retrieval Fallback if 10-K filings cited in narrative or prompt but missing from RAG chunks
+        has_sec_chunks = any(c.get("source_type", "sec_10k") == "sec_10k" for c in raw_chunks)
+        cited_tickers_in_narrative = set(re.findall(r'\b(AAPL|TSLA|META|NVDA|MSFT|GOOGL|AMZN)\b', narrative, re.IGNORECASE))
+        prompt_tickers_in_query = set(re.findall(r'\b(AAPL|TSLA|META|NVDA|MSFT|GOOGL|AMZN)\b', user_prompt, re.IGNORECASE))
+        target_tickers_for_rag = cited_tickers_in_narrative.union(prompt_tickers_in_query)
+
+        if not has_sec_chunks and target_tickers_for_rag:
+            prompt_years = [int(y) for y in re.findall(r'\b(202[0-9])\b', user_prompt)] or [2023]
+            for tk in target_tickers_for_rag:
+                try:
+                    search_sec_filing_chunks_tool(
+                        query="Item 7 MD&A operating income revenue performance disclosures",
+                        ticker=tk.upper(),
+                        requested_years=prompt_years,
+                    )
+                except Exception as e:
+                    logger.warning(f"Auto RAG retrieval fallback failed for {tk}: {e}")
+            raw_chunks = get_grounded_chunks()
+
         seen_gcs = set()
         unique_chunks = []
         for chunk in raw_chunks:
@@ -293,7 +345,9 @@ INSTRUCTIONS FOR THIS RESPONSE:
             sec = (chunk.get("section") or "").lower()
 
             is_cited = False
-            if g_uri in cited_gcs_uris or filename in cited_filenames or any(fn in g_uri for fn in cited_filenames):
+            if chunk.get("source_type") == "bigquery":
+                is_cited = True
+            elif g_uri in cited_gcs_uris or filename in cited_filenames or any(fn in g_uri for fn in cited_filenames):
                 is_cited = True
             elif tk and yr and tk in narrative.upper() and yr in narrative:
                 if ("item 1a" in sec or "risk" in sec) and ("Item 1A" in narrative or "Risk" in narrative or "item1a" in narrative.lower()):
@@ -331,7 +385,7 @@ INSTRUCTIONS FOR THIS RESPONSE:
                     tagged_lines.append(line)
                     continue
 
-                if re.search(r'\(Source|\bgs://|\b10-K\b', line_str, re.IGNORECASE):
+                if re.search(r'\(Source|\bgs://|\b10-K\b|\bBigQuery\b|\bbq://', line_str, re.IGNORECASE):
                     cid = f"c{cite_counter}"
                     cite_counter += 1
 

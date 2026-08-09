@@ -7,6 +7,7 @@ export interface TextChunk {
   section: string;
   citation: string;
   gcs_uri?: string;
+  source_type?: 'bigquery' | 'sec_10k';
 }
 
 export interface HybridSearchResult {

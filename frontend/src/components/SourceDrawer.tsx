@@ -591,6 +591,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
             const isExpanded = !!expandedChunks[idx];
             const isHighlighted = highlightedIdx === idx;
             const textToDisplay = isExpanded ? chunk.content : (chunk.highlight_excerpt || chunk.content);
+            const isBQ = chunk.source_type === 'bigquery' || (chunk.gcs_uri && chunk.gcs_uri.startsWith('bq://'));
 
             return (
               <div
@@ -599,6 +600,8 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                 className={`p-3.5 rounded-xl transition-all duration-300 ${
                   isHighlighted
                     ? 'source-card-highlight'
+                    : isBQ
+                    ? 'bg-white border border-cyan-300 shadow-sm'
                     : idx === 0
                     ? 'bg-white border border-blue-300 shadow-sm'
                     : 'bg-white border border-gray-200 shadow-xs hover:border-blue-200'
@@ -606,8 +609,12 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-xs text-gray-900 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#1A73E8]" />
-                    {chunk.company_name} FY{chunk.fiscal_year} 10-K
+                    {isBQ ? (
+                      <Database className="w-3.5 h-3.5 text-cyan-600" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-[#1A73E8]" />
+                    )}
+                    {chunk.company_name} FY{chunk.fiscal_year} {isBQ ? 'Audited Metrics' : '10-K'}
                   </span>
                   <div className="flex items-center gap-1.5">
                     {isHighlighted && (
@@ -618,7 +625,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                       <CheckCircle2 className="w-2.5 h-2.5 text-[#34A853]" /> Cited
                     </span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isBQ ? 'bg-cyan-50 text-cyan-800 border border-cyan-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
                       {chunk.section}
                     </span>
                   </div>
@@ -626,17 +633,19 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
                 <div className="text-xs text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-200 mb-2">
                   <div className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>{isExpanded ? 'Full Document Context' : 'Relevant Grounded Excerpt'}</span>
-                    <button
-                      onClick={() => toggleExpand(idx)}
-                      className="text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-0.5 text-[10px] normal-case cursor-pointer"
-                    >
-                      {isExpanded ? (
-                        <>Show Excerpt <ChevronUp className="w-3 h-3" /></>
-                      ) : (
-                        <>Show Full Text <ChevronDown className="w-3 h-3" /></>
-                      )}
-                    </button>
+                    <span>{isBQ ? 'GCP BigQuery Metric Data Table' : (isExpanded ? 'Full Document Context' : 'Relevant Grounded Excerpt')}</span>
+                    {!isBQ && (
+                      <button
+                        onClick={() => toggleExpand(idx)}
+                        className="text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-0.5 text-[10px] normal-case cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <>Show Excerpt <ChevronUp className="w-3 h-3" /></>
+                        ) : (
+                          <>Show Full Text <ChevronDown className="w-3 h-3" /></>
+                        )}
+                      </button>
+                    )}
                   </div>
                   <div className="markdown-drawer-content max-w-none text-xs text-gray-800 leading-relaxed overflow-x-auto">
                     <div dangerouslySetInnerHTML={renderHighlightedMarkdown(textToDisplay)} />
@@ -651,22 +660,12 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
             );
           })
         ) : (
-          <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-xs text-gray-900 flex items-center gap-1.5">
-                <BookmarkCheck className="w-3.5 h-3.5 text-[#1A73E8]" />
-                {derivedTicker} Grounded Context
-              </span>
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                Item 7 - MD&A
-              </span>
-            </div>
-            <p className="text-xs text-gray-700 leading-relaxed italic bg-gray-50 p-2.5 rounded-lg border border-gray-200">
-              "Official SEC EDGAR Filing Grounded Context: Audited financial disclosures and period metrics."
+          <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs space-y-2 text-center py-8">
+            <BookmarkCheck className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+            <h3 className="font-semibold text-xs text-gray-800">No Grounded Context Available</h3>
+            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Execute a financial inquiry or click an inline citation badge to view grounded SEC filings or BigQuery metrics.
             </p>
-            <div className="text-[10px] font-mono text-gray-500">
-              Citation: {derivedTicker} 10-K Filing Grounded Context
-            </div>
           </div>
         )}
       </div>

@@ -111,9 +111,11 @@ function formatSourceBadgeHtml(rawText: string): string {
     year = yearMatch[0];
   }
 
-  // Extract SEC Section
+  // Extract SEC / BigQuery Section
   let section = '';
-  if (/Item\s*7|Item7|MDA/i.test(fullText)) {
+  if (/BigQuery|bq:\/\//i.test(fullText)) {
+    section = 'BigQuery Metrics';
+  } else if (/Item\s*7|Item7|MDA/i.test(fullText)) {
     section = 'Item 7 MD&A';
   } else if (/Item\s*1A|Item1A|Risk/i.test(fullText)) {
     section = 'Item 1A Risk Factors';
@@ -121,12 +123,14 @@ function formatSourceBadgeHtml(rawText: string): string {
     section = 'Item 1 Business';
   }
 
-  // Construct natural SEC filing display label without parentheses or raw file extensions
+  // Construct natural display label without parentheses or raw file extensions
   const labelParts: string[] = [];
   if (ticker && year) {
-    labelParts.push(`${ticker} ${year} 10-K`);
+    const isBQ = /BigQuery|bq:\/\//i.test(fullText);
+    labelParts.push(isBQ ? `${ticker} ${year} BigQuery` : `${ticker} ${year} 10-K`);
   } else if (ticker) {
-    labelParts.push(`${ticker} 10-K`);
+    const isBQ = /BigQuery|bq:\/\//i.test(fullText);
+    labelParts.push(isBQ ? `${ticker} BigQuery` : `${ticker} 10-K`);
   } else {
     // Fallback title from raw text without URI/Source prefix
     const titleClean = rawText

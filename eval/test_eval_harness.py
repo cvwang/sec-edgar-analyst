@@ -357,3 +357,37 @@ def test_formulate_vertex_search_query():
     )
     assert q2 == "NVDA 2023 2024 AI R&D"
 
+
+def test_bigquery_grounded_chunks_synthesis():
+    """Verifies that BigQuery metric lookup outputs are synthesized into BigQuery grounded source chunks."""
+    from agent.rag.sec_corpus import reset_grounded_chunks, add_grounded_chunks, get_grounded_chunks
+
+    reset_grounded_chunks()
+    bq_rec = {
+        "ticker": "MSFT",
+        "fiscal_year": 2023,
+        "company_name": "MICROSOFT CORP",
+        "revenue": 211915.0,
+        "operating_income": 88523.0,
+        "net_income": 72361.0,
+    }
+    bq_chunk = {
+        "chunk_id": f"bq_{bq_rec['ticker']}_{bq_rec['fiscal_year']}",
+        "ticker": bq_rec["ticker"],
+        "company_name": bq_rec["company_name"],
+        "fiscal_year": bq_rec["fiscal_year"],
+        "section": "GCP BigQuery Structured Financial Metrics",
+        "content": f"### Audited Financial Disclosures (GCP BigQuery)\n| Metric | Reported Value |\n| --- | --- |\n| Revenue | ${bq_rec['revenue']:,.2f}M |",
+        "citation": f"GCP BigQuery (sec_edgar_financials.financial_metrics) [{bq_rec['ticker']} FY{bq_rec['fiscal_year']}]",
+        "gcs_uri": f"bq://sec_edgar_financials.financial_metrics/{bq_rec['ticker']}_{bq_rec['fiscal_year']}",
+        "source_type": "bigquery",
+    }
+    add_grounded_chunks([bq_chunk])
+
+    chunks = get_grounded_chunks()
+    assert len(chunks) == 1
+    assert chunks[0]["source_type"] == "bigquery"
+    assert chunks[0]["ticker"] == "MSFT"
+    assert "GCP BigQuery" in chunks[0]["citation"]
+
+

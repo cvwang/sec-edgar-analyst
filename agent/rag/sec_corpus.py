@@ -322,7 +322,7 @@ def formulate_vertex_search_query(
 
 
 class SECDocumentChunk(BaseModel):
-    """Chunk of SEC 10-K filing text with GCS grounding metadata."""
+    """Chunk of SEC 10-K filing text or BigQuery metric record with GCS/BQ grounding metadata."""
 
     chunk_id: str
     ticker: str
@@ -333,6 +333,7 @@ class SECDocumentChunk(BaseModel):
     highlight_excerpt: str = ""
     citation: str
     gcs_uri: str
+    source_type: str = "sec_10k"  # "sec_10k" or "bigquery"
     keywords: List[str] = Field(default_factory=list)
 
 

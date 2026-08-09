@@ -11,7 +11,7 @@ const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   sender: 'agent',
   text: 'Hello! I am your SEC EDGAR Natural Language Analyst. Ask me any financial question in plain English (e.g., *"Compare Apple and Microsoft operating income in 2023"*, *"Explain Tesla 2023 financial highlights"*).',
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  timestamp: '',
 };
 
 export function App() {
@@ -131,6 +131,21 @@ export function App() {
     };
   };
 
+function formatMessageTimestamp(timestampStr?: string): string {
+  if (!timestampStr) {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  try {
+    const date = new Date(timestampStr);
+    if (isNaN(date.getTime())) {
+      return timestampStr;
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return timestampStr;
+  }
+}
+
   // Load session turns and last response state when active session changes
   const loadSessionDetails = useCallback(async (sessionId: string) => {
     if (!sessionId) return;
@@ -144,12 +159,19 @@ export function App() {
       if (detail.turns && detail.turns.length > 0) {
         detail.turns.forEach((turn, idx) => {
           const respData = turn.metadata?.last_response || turn.metadata?.response || undefined;
+          const rawTime =
+            turn.timestamp ||
+            turn.metadata?.timestamp ||
+            detail.metadata?.updated_at ||
+            detail.metadata?.created_at;
+          const turnTime = formatMessageTimestamp(rawTime);
+
           if (turn.user_query && turn.user_query.trim()) {
             loadedMsgs.push({
               id: `${sessionId}_user_${turn.turn_id}_${idx}`,
               sender: 'user',
               text: turn.user_query.trim(),
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: turnTime,
             });
           }
           if (turn.agent_response && turn.agent_response.trim()) {
@@ -157,7 +179,7 @@ export function App() {
               id: `${sessionId}_agent_${turn.turn_id}_${idx}`,
               sender: 'agent',
               text: turn.agent_response.trim(),
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: turnTime,
               data: respData,
             });
           }

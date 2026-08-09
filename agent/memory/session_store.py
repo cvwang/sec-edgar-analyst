@@ -14,6 +14,7 @@ class SessionTurn(BaseModel):
     turn_id: int
     user_query: str
     agent_response: str
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -175,6 +176,7 @@ class PersistentSessionStore:
             turn_id=turn_number,
             user_query=user_query,
             agent_response=agent_response,
+            timestamp=now_iso,
             metadata=metadata or {},
         )
 

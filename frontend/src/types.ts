@@ -51,6 +51,7 @@ export interface SessionTurnRaw {
   turn_id: number;
   user_query: string;
   agent_response: string;
+  timestamp?: string;
   metadata?: Record<string, any>;
 }
 

@@ -325,9 +325,11 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
                   >
                     {isAgent ? 'SEC Analyst Agent' : 'Financial Analyst'}
                   </span>
-                  <span className={`text-[10px] ${isAgent ? 'text-gray-400' : 'text-blue-100'}`}>
-                    {msg.timestamp}
-                  </span>
+                  {msg.timestamp ? (
+                    <span className={`text-[10px] ${isAgent ? 'text-gray-400' : 'text-blue-100'}`}>
+                      {msg.timestamp}
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Content */}

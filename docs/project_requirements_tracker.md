@@ -10,8 +10,8 @@
 ## 📊 Feature & Requirement Tracking Summary
 
 * **Total Tracked Requirements**: 37
-* **Completed & Verified (✅)**: 33
-* **In Progress / Active Auditing & Setup (🟡)**: 4 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; SEC-07: Zero Hardcoded Tickers & Year Fallbacks Cleanup; EVAL-04: Agent Evaluation Robustness & Capstone Presentation Evals Focus)
+* **Completed & Verified (✅)**: 34
+* **In Progress / Argolis Active Setup (🟡)**: 3 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; EVAL-04: Agent Evaluation Robustness & Capstone Presentation Evals Focus)
 * **Not Started / Upcoming / TODO (🔴)**: 0
 
 ---
@@ -60,7 +60,7 @@
 | **UI-02** | **Human-In-The-Loop Export Stop**: Explicit approval modal required before exporting reports to GCS bucket. (`fsi_tdd.md` § 3.1) | `frontend/src/components/ExportModal.tsx`, `agent/api.py` | ✅ **Completed** | Implemented `/api/v1/export` endpoint requiring `human_approved: true` payload confirmation. |
 | **UI-03** | **Longitudinal Thematic Shift Tracking**: Multi-year trend analysis for specific topics (e.g. AI risk factors from 2022-2024). (`fsi_scoping.md` § Project Overview) | `agent/orchestrator.py`, `agent/subagents/search_subagent.py` | ✅ **Completed** | Handled via dynamic SEC filings search subagent and multi-turn context retention. |
 | **UI-04** | **Grounded Context Highlighting & Section Links**: Inline response citations directly linked and auto-scrolled to highlighted sections in the grounded text source drawer. | `frontend/src/components/SourceDrawer.tsx`, `frontend/src/components/ChatStream.tsx` | ✅ **Completed** | Implemented 1:1 citation badge linking, auto-scroll positioning, and active yellow sentence highlighting for referenced 10-K passages in `SourceDrawer.tsx`. |
-| **UI-05** | **Strict Ticker-to-Source Citation Mapping & Multi-Company Drawer Filtering**: Ensure inline citation badges route strictly to their corresponding company's 10-K source document and text content in peer comparison / multi-entity queries (preventing cross-company citation mislinks, e.g., MSFT citation opening NVDA source text). | `frontend/src/components/SourceDrawer.tsx`, `frontend/src/components/ChatStream.tsx`, `agent/orchestrator.py` | ✅ **Completed** | Implemented dynamic ticker extraction, structured badge metadata, strict entity matching in `SourceDrawer`, and multi-company filter tabs (`All`, `NVDA`, `MSFT`). |
+| **UI-05** | **Strict Ticker-to-Source Citation Mapping & Multi-Company Drawer Filtering**: Ensure inline citation badges route strictly to their corresponding company's 10-K source document and text content in peer comparison / multi-entity queries (preventing cross-company citation mislinks, e.g., MSFT citation opening NVDA source text). | `frontend/src/components/SourceDrawer.tsx`, `frontend/src/components/ChatStream.tsx`, `agent/orchestrator.py` | ✅ **Completed** | Implemented 1:1 ticker citation extraction, Stage 0 citeId DOM targeting, reverse drawer mark flash animations, post-tab-mount pulse triggers, and multi-company filter tabs (`All`, `NVDA`, `MSFT`). |
 
 ---
 
@@ -74,7 +74,7 @@
 | **SEC-04** | **VPC Service Controls & Private Endpoints**: Securing GCS, BigQuery, and Vertex AI within a strict service perimeter. (`fsi_tdd.md` § 3.2) | `terraform/main.tf`, `deployment/deploy.sh` | ✅ **Completed** | Configured Cloud Run service perimeter, health probes (`/api/v1/health`), and IAM invoker bindings. |
 | **SEC-05** | **GCP Secret Manager Integration & Cloud Run Secret Mounts**: Provisioning Secret Manager secrets and IAM accessor bindings via Terraform. (`fsi_tdd.md` § 3.2; `FDE Onboarding` § Part B) | `terraform/main.tf` | ✅ **Completed** | Configured Secret Manager resource `google_secret_manager_secret.api_key_secret` and IAM `secretmanager.secretAccessor` binding in Terraform for container secret injection, while using Vertex AI ADC for zero-key LLM authentication. |
 | **SEC-06** | **Google Identity & @google.com Email Access Control**: Google OAuth2 / Identity-Aware Proxy (IAP) authentication restricting Cloud Run and web app access exclusively to `@google.com` accounts. | `agent/api.py`, `frontend/`, `terraform/main.tf` | 🟡 **In Progress** | Google OAuth2 / IAP setup for Cloud Run frontend and REST API endpoints restricted to `@google.com` user domain identity authentication. |
-| **SEC-07** | **Zero Hardcoded Fallbacks (Tickers & Years)**: Strict prohibition against hardcoded ticker symbols (e.g., AAPL, NVDA, MSFT), static company maps, or hardcoded default fallback years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) across backend orchestrators, tools, RAG retrievers, API schemas, and frontend components. (`AGENTS.md` Rule 7) | `agent/`, `frontend/` | 🟡 **Auditing & Cleanup** | Strict policy prohibiting hardcoded tickers & year fallbacks (`2023`); auditing orchestrator, API models, and tool retrieval logic to eviscerate default fallbacks. |
+| **SEC-07** | **Zero Hardcoded Fallbacks (Tickers & Years)**: Strict prohibition against hardcoded ticker symbols (e.g., AAPL, NVDA, MSFT), static company maps, or hardcoded default fallback years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) across backend orchestrators, tools, RAG retrievers, API schemas, and frontend components. (`AGENTS.md` Rule 7) | `agent/`, `frontend/` | ✅ **Completed** | Enforced zero hardcoding/fallbacks policy; dynamically parsed all tickers and fiscal years from SEC corpus metadata, BigQuery tool outputs, and LLM payloads across agent orchestrators, API schemas, and frontend UI components. |
 
 ---
 
@@ -112,7 +112,7 @@
 
 ## 🎉 Project Milestone & Status
 
-All **32 out of 35** core master requirements specified in `FDE Onboarding Project.md`, `fsi_scoping.md`, and `fsi_tdd.md` are **100% Complete & Verified (✅)**, with 3 remaining operational/eval setup tasks actively in progress for Argolis deployment.
+All **34 out of 37** core master requirements specified in `FDE Onboarding Project.md`, `fsi_scoping.md`, and `fsi_tdd.md` are **100% Complete & Verified (✅)**, with 3 remaining operational/eval setup tasks actively in progress for Argolis deployment.
 
 ### Key Achievements
 1. **Agentic Architecture**: Full Google ADK Supervisor pattern with native multi-turn tool loops, dynamic subagent search, and context memory.

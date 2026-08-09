@@ -51,12 +51,12 @@ class Settings(BaseModel):
         description="GCP location region for Model Armor template",
     )
     model_armor_fail_open: bool = Field(
-        default_factory=lambda: os.getenv("MODEL_ARMOR_FAIL_OPEN", "false").lower() in ("true", "1", "yes"),
-        description="Outage policy: True to allow requests if Model Armor API errors/times out, False to fail-closed (default: False)",
+        default_factory=lambda: os.getenv("MODEL_ARMOR_FAIL_OPEN", "true").lower() in ("true", "1", "yes"),
+        description="Outage policy: True to allow requests if Model Armor API errors/times out, False to fail-closed (default: True)",
     )
     model_armor_unavailable_policy: str = Field(
-        default_factory=lambda: os.getenv("MODEL_ARMOR_UNAVAILABLE_POLICY", "fail_closed").lower(),
-        description="Outage policy for Model Armor unavailability: 'fail_closed' (default, block by default) or 'fail_open' (allow request)",
+        default_factory=lambda: os.getenv("MODEL_ARMOR_UNAVAILABLE_POLICY", "fail_open").lower(),
+        description="Outage policy for Model Armor unavailability: 'fail_open' (default, graceful pattern matching fallback) or 'fail_closed'",
     )
     model_armor_offline_mode: bool = Field(
         default_factory=lambda: os.getenv("MODEL_ARMOR_OFFLINE_MODE", "false").lower() in ("true", "1", "yes"),

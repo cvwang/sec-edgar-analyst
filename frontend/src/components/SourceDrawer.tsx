@@ -327,6 +327,7 @@ function computeMarkScore(markText: string, rawQuery: string): number {
 export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, activeSourceQuery, onToggleCollapse }) => {
   const [expandedChunks, setExpandedChunks] = useState<Record<number, boolean>>({});
   const [highlightedIdx, setHighlightedIdx] = useState<number | null>(null);
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('ALL');
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const citations = lastResponse?.citations || [];
@@ -360,27 +361,54 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     return Array.from(map.values());
   }, [textChunks]);
 
+  // Dynamically extract unique company/ticker filter options
+  const companyOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const chunk of consolidatedChunks) {
+      const t = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+      if (t && t !== 'SEC') set.add(t);
+    }
+    return Array.from(set);
+  }, [consolidatedChunks]);
+
   // Auto-scroll and highlight when a source citation badge is clicked in chat stream
   useEffect(() => {
     const rawQuery = activeSourceQuery?.query;
-    if (!rawQuery || consolidatedChunks.length === 0) return;
+    const activeTicker = activeSourceQuery?.ticker?.toUpperCase().trim();
+    const activeGcsUri = activeSourceQuery?.gcsUri?.toLowerCase().trim();
 
-    const queryLower = rawQuery.toLowerCase().trim();
-    const queryParts = rawQuery.split('|||').map((p) => p.toLowerCase().trim());
+    if ((!rawQuery && !activeGcsUri && !activeTicker) || consolidatedChunks.length === 0) return;
 
-    // 1. Stage 1: Match by GCS URI or exact filename
+    const queryLower = (rawQuery || '').toLowerCase().trim();
+    const queryParts = (rawQuery || '').split('|||').map((p) => p.toLowerCase().trim());
+
+    // Auto-switch company tab filter if clicked citation specifies a known ticker
+    if (activeTicker && companyOptions.includes(activeTicker)) {
+      setSelectedCompanyFilter(activeTicker);
+    }
+
+    // 1. Stage 1: Match by exact GCS URI or filename
     let matchIdx = consolidatedChunks.findIndex((chunk) => {
       const gcs = (chunk.gcs_uri || '').toLowerCase();
+      if (activeGcsUri && gcs && (gcs === activeGcsUri || gcs.includes(activeGcsUri))) {
+        return true;
+      }
       const filename = gcs.split('/').pop() || '';
       return queryParts.some((p) => p && (gcs.includes(p) || (filename && p.includes(filename))));
     });
 
-    // 2. Stage 2: Match by Ticker + Fiscal Year + SEC Section
+    // 2. Stage 2: Strict Ticker + Fiscal Year + SEC Section
     if (matchIdx === -1) {
       matchIdx = consolidatedChunks.findIndex((chunk) => {
         const comp = (chunk.company_name || chunk.ticker || '').toLowerCase();
+        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
         const yr = String(chunk.fiscal_year || '');
         const sec = (chunk.section || '').toLowerCase();
+
+        // Enforce strict ticker match when activeTicker is explicitly present
+        if (activeTicker && chkTicker && chkTicker !== activeTicker && !comp.includes(activeTicker.toLowerCase())) {
+          return false;
+        }
 
         const matchesComp = comp && queryParts.some((p) => p && comp.includes(p.replace(/\s+corp$/i, '')));
         const matchesYr = yr && queryParts.some((p) => p && p.includes(yr));
@@ -401,6 +429,9 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     // 3. Stage 3: Direct metadata match (citation or company/year)
     if (matchIdx === -1) {
       matchIdx = consolidatedChunks.findIndex((chunk) => {
+        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+        if (activeTicker && chkTicker && chkTicker !== activeTicker) return false;
+
         if (chunk.citation && queryLower.includes(chunk.citation.toLowerCase())) return true;
         if (
           chunk.company_name &&
@@ -413,20 +444,25 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
       });
     }
 
-    // 4. Stage 4: Direct text content inclusion match
+    // 4. Stage 4: Direct text content inclusion match (with strict ticker guard)
     if (matchIdx === -1) {
-      matchIdx = consolidatedChunks.findIndex(
-        (chunk) =>
+      matchIdx = consolidatedChunks.findIndex((chunk) => {
+        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+        if (activeTicker && chkTicker && chkTicker !== activeTicker) return false;
+
+        return (
           chunk.content &&
           (chunk.content.toLowerCase().includes(queryLower) || queryLower.includes(chunk.content.toLowerCase()))
-      );
+        );
+      });
     }
 
-    // 5. Stage 5: Fallback company name match
-    if (matchIdx === -1) {
-      matchIdx = consolidatedChunks.findIndex(
-        (chunk) => chunk.company_name && queryLower.includes(chunk.company_name.toLowerCase())
-      );
+    // 5. Stage 5: Fallback exact ticker match
+    if (matchIdx === -1 && activeTicker) {
+      matchIdx = consolidatedChunks.findIndex((chunk) => {
+        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+        return chkTicker === activeTicker;
+      });
     }
 
     if (matchIdx !== -1) {
@@ -445,6 +481,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
         const markEls = el.querySelectorAll('mark');
         if (markEls && markEls.length > 0) {
           let bestMark: HTMLElement | null = null;
+          let maxScore = -1;
 
           const targetCiteId = activeSourceQuery?.citeId;
           if (targetCiteId) {
@@ -457,12 +494,11 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
           }
 
           if (!bestMark) {
-            let highestScore = -1;
             markEls.forEach((markNode) => {
               const mText = markNode.textContent || '';
-              const score = computeMarkScore(mText, rawQuery);
-              if (score > highestScore) {
-                highestScore = score;
+              const score = computeMarkScore(mText, rawQuery || '');
+              if (score > maxScore) {
+                maxScore = score;
                 bestMark = markNode as HTMLElement;
               }
             });
@@ -474,26 +510,33 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
           bestMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-          markEls.forEach((m) => m.classList.remove('citation-mark-pulse'));
-          // Force DOM reflow to restart CSS keyframe animation on consecutive clicks
-          void bestMark.offsetWidth;
-          bestMark.classList.add('citation-mark-pulse');
+          markEls.forEach((m) => {
+            const mText = m.textContent || '';
+            const score = computeMarkScore(mText, rawQuery || '');
+            m.classList.remove('citation-mark-pulse');
+            if (m === bestMark || (score > 0 && maxScore > 0 && score >= maxScore - 2)) {
+              void m.offsetWidth;
+              m.classList.add('citation-mark-pulse');
+            }
+          });
         }
       };
 
       requestAnimationFrame(scrollAndPulseMark);
-      const timerId = setTimeout(scrollAndPulseMark, 120);
+      const timerId1 = setTimeout(scrollAndPulseMark, 100);
+      const timerId2 = setTimeout(scrollAndPulseMark, 300);
 
       const clearTimer = setTimeout(() => {
         setHighlightedIdx(null);
       }, 5000);
 
       return () => {
-        clearTimeout(timerId);
+        clearTimeout(timerId1);
+        clearTimeout(timerId2);
         clearTimeout(clearTimer);
       };
     }
-  }, [activeSourceQuery?.timestamp, activeSourceQuery, consolidatedChunks]);
+  }, [activeSourceQuery?.timestamp, activeSourceQuery, consolidatedChunks, companyOptions]);
 
   const toggleExpand = (idx: number) => {
     setExpandedChunks((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -562,32 +605,78 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     });
   };
 
+  const filteredChunks = React.useMemo(() => {
+    if (selectedCompanyFilter === 'ALL') return consolidatedChunks;
+    return consolidatedChunks.filter((chunk) => {
+      const t = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+      return t.includes(selectedCompanyFilter);
+    });
+  }, [consolidatedChunks, selectedCompanyFilter]);
+
   return (
     <aside className="w-full h-full bg-white border-l border-gray-200 flex flex-col shrink-0 overflow-hidden shadow-xs">
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-[#1A73E8]" />
-          <h2 className="font-heading font-semibold text-sm text-gray-800">Grounded Context Drawer</h2>
+      <div className="p-4 border-b border-gray-200 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-[#1A73E8]" />
+            <h2 className="font-heading font-semibold text-sm text-gray-800">Grounded Context Drawer</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#1A73E8] border border-blue-200">
+              {consolidatedChunks.length} {consolidatedChunks.length === 1 ? 'Source Cited' : 'Sources Cited'}
+            </span>
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                title="Collapse Grounded Context Drawer"
+                className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <PanelRightClose className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#1A73E8] border border-blue-200">
-            {consolidatedChunks.length} {consolidatedChunks.length === 1 ? 'Source Cited' : 'Sources Cited'}
-          </span>
-          {onToggleCollapse && (
+
+        {/* Multi-Company Filter Tabs */}
+        {companyOptions.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 scrollbar-none">
             <button
-              onClick={onToggleCollapse}
-              title="Collapse Grounded Context Drawer"
-              className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+              onClick={() => setSelectedCompanyFilter('ALL')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                selectedCompanyFilter === 'ALL'
+                  ? 'bg-[#1A73E8] text-white shadow-xs'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              <PanelRightClose className="w-4 h-4" />
+              All ({consolidatedChunks.length})
             </button>
-          )}
-        </div>
+            {companyOptions.map((c) => {
+              const count = consolidatedChunks.filter((chk) =>
+                (chk.ticker || (chk.company_name ? chk.company_name.split(' ')[0] : '')).toUpperCase().includes(c)
+              ).length;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setSelectedCompanyFilter(c)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    selectedCompanyFilter === c
+                      ? 'bg-[#1A73E8] text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {c} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3" onClick={handleDrawerMarkClick}>
-        {consolidatedChunks.length > 0 ? (
-          consolidatedChunks.map((chunk, idx) => {
+        {filteredChunks.length > 0 ? (
+          filteredChunks.map((chunk) => {
+            const originalIdx = consolidatedChunks.indexOf(chunk);
+            const idx = originalIdx !== -1 ? originalIdx : 0;
             const isExpanded = !!expandedChunks[idx];
             const isHighlighted = highlightedIdx === idx;
             const textToDisplay = isExpanded ? chunk.content : (chunk.highlight_excerpt || chunk.content);

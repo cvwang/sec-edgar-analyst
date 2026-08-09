@@ -86,7 +86,11 @@ class ModelArmorGuard:
             self._client = modelarmor_v1.ModelArmorClient(client_options=client_options)
             return self._client
         except Exception:
-            return None
+            try:
+                self._client = modelarmor_v1.ModelArmorClient()
+                return self._client
+            except Exception:
+                return None
 
     def _call_with_retry(
         self,
@@ -123,7 +127,11 @@ class ModelArmorGuard:
             return self._check_offline_ingress(prompt)
 
         # 2. Live Production Path: Go straight to GCP Model Armor SDK Client
-        client = self._get_client()
+        try:
+            client = self._get_client()
+        except Exception as err:
+            return self._handle_outage(stage="ingress", error=err, text=prompt)
+
         if client is None:
             err = RuntimeError("ModelArmorClient initialization failed (client is None)")
             return self._handle_outage(stage="ingress", error=err, text=prompt)
@@ -152,7 +160,11 @@ class ModelArmorGuard:
             return self._check_offline_egress(model_response_text)
 
         # 2. Live Production Path: Go straight to GCP Model Armor SDK Client
-        client = self._get_client()
+        try:
+            client = self._get_client()
+        except Exception as err:
+            return self._handle_outage(stage="egress", error=err, text=model_response_text)
+
         if client is None:
             err = RuntimeError("ModelArmorClient initialization failed (client is None)")
             return self._handle_outage(stage="egress", error=err, text=model_response_text)

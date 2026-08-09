@@ -64,6 +64,10 @@ export interface ActiveSourceQuery {
   query: string;
   timestamp: number;
   citeId?: string;
+  ticker?: string;
+  fiscalYear?: number | string;
+  gcsUri?: string;
+  section?: string;
 }
 
 

@@ -97,11 +97,23 @@ function formatSourceBadgeHtml(rawText: string): string {
   const filename = gcsUri ? gcsUri.split('/').pop() || '' : '';
   const fullText = `${filename} ${rawText}`;
 
-  // Extract Ticker (e.g. AAPL, TSLA, META, NVDA, MSFT)
+  // Dynamically extract Ticker without hardcoding (from filename, explicit key, or uppercase symbol)
   let ticker = '';
-  const tickerMatch = fullText.match(/\b(AAPL|TSLA|META|NVDA|MSFT|GOOGL|AMZN)\b/i);
-  if (tickerMatch) {
-    ticker = tickerMatch[0].toUpperCase();
+  const fileTickerMatch = filename.match(/^([A-Z0-9\.\-]+)_(?:20\d\d)/i) || fullText.match(/\bticker=["']?([A-Z0-9\.\-]+)["']?/i);
+  if (fileTickerMatch) {
+    ticker = fileTickerMatch[1].toUpperCase();
+  } else {
+    // Dynamic uppercase symbol match excluding common SEC/RAG keywords
+    const keywords = new Set(['GS', 'SEC', '10K', '10-K', 'MDA', 'MD&A', 'ITEM', 'FORM', 'PAGE', 'PART', 'BQ', 'HTML', 'TXT', 'JSON', 'PDF', 'CSV']);
+    const wordMatches = fullText.match(/\b([A-Z]{1,5})\b/g);
+    if (wordMatches) {
+      for (const w of wordMatches) {
+        if (!keywords.has(w.toUpperCase())) {
+          ticker = w.toUpperCase();
+          break;
+        }
+      }
+    }
   }
 
   // Extract Fiscal Year (e.g. 2022, 2023, 2024, 2025)
@@ -151,7 +163,7 @@ function formatSourceBadgeHtml(rawText: string): string {
   const labelText = labelParts.length > 0 ? labelParts.join(' • ') : 'SEC 10-K Filing';
   const queryAttr = [gcsUri, ticker, year, section, citeId, rawText].filter(Boolean).join('|||').replace(/"/g, '&quot;');
 
-  return `<button data-cite-id="${citeId}" data-source-query="${queryAttr}" class="source-citation-badge hover:scale-105 active:scale-95 cursor-pointer" title="Click to highlight grounded SEC source section">📌 ${labelText}</button>`;
+  return `<button data-cite-id="${citeId}" data-ticker="${ticker}" data-gcs-uri="${gcsUri}" data-fiscal-year="${year}" data-section="${section}" data-source-query="${queryAttr}" class="source-citation-badge hover:scale-105 active:scale-95 cursor-pointer" title="Click to highlight grounded SEC source section">📌 ${labelText}</button>`;
 }
 
 export const ChatStream: React.FC<ChatStreamProps> = ({
@@ -189,6 +201,10 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
     if (badge) {
       e.stopPropagation();
       const citeId = badge.getAttribute('data-cite-id') || '';
+      const ticker = badge.getAttribute('data-ticker') || '';
+      const gcsUri = badge.getAttribute('data-gcs-uri') || '';
+      const fiscalYear = badge.getAttribute('data-fiscal-year') || '';
+      const section = badge.getAttribute('data-section') || '';
       let query = badge.getAttribute('data-source-query') || badge.innerText;
 
       // Extract surrounding container narrative text (li, p, tr, etc.) to enable 1:1 grounded sentence matching
@@ -200,8 +216,16 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
         }
       }
 
-      if (query || citeId) {
-        onSelectSourceQuery?.({ query, citeId, timestamp: Date.now() } as any);
+      if (query || citeId || ticker || gcsUri) {
+        onSelectSourceQuery?.({
+          query,
+          citeId,
+          ticker,
+          gcsUri,
+          fiscalYear,
+          section,
+          timestamp: Date.now(),
+        });
       }
       return;
     }

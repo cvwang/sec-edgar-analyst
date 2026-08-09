@@ -200,9 +200,13 @@ export function Sidebar({
                   )}
                 </div>
 
-                {/* Actions (visible on hover or active) */}
+                {/* Actions (visible on hover or confirm delete) */}
                 {!isEditing && (
-                  <div className="flex items-center gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <div
+                    className={`items-center gap-0.5 ml-1.5 shrink-0 ${
+                      confirmDeleteId === session.session_id ? 'flex' : 'hidden group-hover:flex'
+                    }`}
+                  >
                     {confirmDeleteId === session.session_id ? (
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button

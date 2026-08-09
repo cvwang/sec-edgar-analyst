@@ -5,7 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { ChatStream } from './components/ChatStream';
 import { SourceDrawer } from './components/SourceDrawer';
 import { ExportModal } from './components/ExportModal';
-import { ChatMessage, AnalysisResponse, SessionSummary, SessionDetail } from './types';
+import { ChatMessage, AnalysisResponse, SessionSummary, SessionDetail, ActiveSourceQuery } from './types';
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
@@ -39,7 +39,7 @@ export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [lastResponse, setLastResponse] = useState<AnalysisResponse | null>(null);
-  const [activeSourceQuery, setActiveSourceQuery] = useState<string | null>(null);
+  const [activeSourceQuery, setActiveSourceQuery] = useState<ActiveSourceQuery | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Split View Drag State (leftWidth in percentage for ChatStream when drawer is open)
@@ -481,8 +481,12 @@ export function App() {
               onSendMessage={handleSendMessage}
               onChipClick={(chip) => setInputPrompt(chip)}
               onSelectMessageResponse={(data) => setLastResponse(data)}
-              onSelectSourceQuery={(query) => {
-                setActiveSourceQuery(query);
+              onSelectSourceQuery={(queryPayload) => {
+                if (typeof queryPayload === 'string') {
+                  setActiveSourceQuery({ query: queryPayload, timestamp: Date.now() });
+                } else {
+                  setActiveSourceQuery(queryPayload);
+                }
                 if (!isSourceDrawerOpen) setIsSourceDrawerOpen(true);
               }}
             />

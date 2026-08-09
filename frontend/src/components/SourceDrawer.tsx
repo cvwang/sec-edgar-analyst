@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Database, FileText, ExternalLink, BookmarkCheck, CheckCircle2, ChevronDown, ChevronUp, PanelRightClose, Target } from 'lucide-react';
+import { marked } from 'marked';
 import { AnalysisResponse, ActiveSourceQuery } from '../types';
 
 interface SourceDrawerProps {
@@ -8,7 +9,273 @@ interface SourceDrawerProps {
   onToggleCollapse?: () => void;
 }
 
+marked.use({
+  gfm: true,
+  breaks: true,
+});
+
+function normalizeMarkdownTables(text: string): string {
+  if (!text) return '';
+
+  // 1. Universal SEC Metadata & Page Banner Stripper (ZERO hardcoded company names)
+  // Strips both "| <COMPANY> | <FORM> | <PAGE/SECTION>" AND "<COMPANY> | <FORM> | <PAGE/SECTION>"
+  let preprocessed = text
+    .replace(/^(?:\||\s*)[^|\n]+\s*\|\s*(?:\d{4}\s*)?Form\s*10-[KQAB][^\n]*\n?/gim, '')
+    .replace(/(?:\||\s*)[^|\n]+\s*\|\s*(?:\d{4}\s*)?Form\s*10-[KQAB][^\n]*\n?/gim, '');
+
+  // 2. Separate narrative text & <mark> tags that run onto the end of a table line
+  preprocessed = preprocessed.replace(
+    /(\|\s*(?:\$?\d[\d,.]*%?|\([^)]+\))\s*\|?<\/mark>|\|\s*(?:\$?\d[\d,.]*%?|\([^)]+\))\s*\|)\s*(\|?\s*<mark[^>]*>[A-Z][a-z]{2,}|\|?\s*[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,})/g,
+    '$1\n\n$2'
+  );
+
+  const rawLines = preprocessed.split('\n');
+  const sanitizedLines: string[] = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    let line = rawLines[i].trim();
+    if (!line) continue;
+
+    // Check for orphan label lines like "| Services" followed by "| - | 96,169 | ..."
+    if (/^\|\s*[A-Za-z0-9\s,&\-\/]+\s*$/.test(line) && i + 1 < rawLines.length) {
+      const nextLine = rawLines[i + 1].trim();
+      if (nextLine.startsWith('| - |') || nextLine.startsWith('| |')) {
+        const label = line.replace(/\|/g, '').trim();
+        rawLines[i + 1] = '| ' + label + ' ' + nextLine.substring(nextLine.indexOf('|', 2));
+        continue;
+      }
+    }
+
+    sanitizedLines.push(line);
+  }
+
+  const blocks: Array<{ type: 'text' | 'table'; lines: string[] }> = [];
+  let currentBlock: { type: 'text' | 'table'; lines: string[] } | null = null;
+
+  for (let i = 0; i < sanitizedLines.length; i++) {
+    let line = sanitizedLines[i].trim();
+    if (!line) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
+      }
+      continue;
+    }
+
+    if (/^\|[\s|]*$/.test(line)) {
+      continue;
+    }
+
+    // A line is a table line IF it contains pipe delimiters and table metrics (NOT long narrative text > 90 chars without pipes)
+    const pipeCount = (line.match(/\|/g) || []).length;
+    const isLongNarrative = line.replace(/<mark[^>]*>|<\/mark>/g, '').length > 90 && pipeCount <= 1;
+    const isTableLine =
+      !isLongNarrative &&
+      (pipeCount >= 2 ||
+        (pipeCount >= 1 && (line.includes('$') || line.includes('%') || line.includes('---'))));
+
+    if (!isTableLine && line.startsWith('|')) {
+      line = line.replace(/^\|\s*/, '');
+    }
+
+    if (isTableLine) {
+      if (!currentBlock || currentBlock.type !== 'table') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'table', lines: [] };
+      }
+      currentBlock.lines.push(line);
+    } else {
+      if (!currentBlock || currentBlock.type !== 'text') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'text', lines: [] };
+      }
+      currentBlock.lines.push(line);
+    }
+  }
+
+  if (currentBlock) {
+    blocks.push(currentBlock);
+  }
+
+  const outputBlocks: string[] = [];
+
+  for (const block of blocks) {
+    if (block.type === 'text') {
+      outputBlocks.push(block.lines.join('\n'));
+      continue;
+    }
+
+    const rawTableLines = block.lines;
+    const parsedRows: Array<{ citeId: string; cells: string[] }> = [];
+    let maxCols = 0;
+
+    for (let r = 0; r < rawTableLines.length; r++) {
+      let rowStr = rawTableLines[r];
+
+      let citeId = '';
+      const citeMatch = rowStr.match(/id=["']?(c\d+)["']?/i) || rowStr.match(/data-cite-id=["']?(c\d+)["']?/i);
+      if (citeMatch) citeId = citeMatch[1].toLowerCase();
+
+      if (rowStr.startsWith('<mark') && rowStr.endsWith('</mark>')) {
+        const markOpenEnd = rowStr.indexOf('>');
+        rowStr = rowStr.substring(markOpenEnd + 1, rowStr.length - 7).trim();
+      }
+
+      if (!rowStr.startsWith('|')) rowStr = '| ' + rowStr;
+      if (!rowStr.endsWith('|')) rowStr = rowStr + ' |';
+
+      if (/^\|\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|$/.test(rowStr)) {
+        continue;
+      }
+
+      const rawCells = rowStr.split('|').slice(1, -1);
+      const cleanedCells = rawCells.map((c) => c.trim());
+
+      if (cleanedCells.length > maxCols) {
+        maxCols = cleanedCells.length;
+      }
+
+      parsedRows.push({ citeId, cells: cleanedCells });
+    }
+
+    if (maxCols === 0 || parsedRows.length === 0) {
+      outputBlocks.push(block.lines.join('\n'));
+      continue;
+    }
+
+    const headerRow = parsedRows[0];
+    const dataRows = parsedRows.slice(1);
+    const firstHeaderCell = headerRow.cells[0] ? headerRow.cells[0].trim() : '';
+
+    const firstHeaderIsYearOrMetric = /^(?:20\d\d|change|\$|%)/i.test(firstHeaderCell);
+    const dataRowsStartWithText = dataRows.some((r) => r.cells[0] && !/^(?:\$|%|\d+(?:\.\d+)?$)/.test(r.cells[0].trim()));
+
+    if (firstHeaderIsYearOrMetric && dataRowsStartWithText) {
+      headerRow.cells.unshift('Category');
+      if (headerRow.cells.length > maxCols) {
+        maxCols = headerRow.cells.length;
+      }
+    }
+
+    const normalizedTableLines: string[] = [];
+
+    const headerCells = [...headerRow.cells];
+    while (headerCells.length < maxCols) {
+      headerCells.push('');
+    }
+    normalizedTableLines.push('| ' + headerCells.map((c) => c || ' ').join(' | ') + ' |');
+
+    normalizedTableLines.push('| ' + Array(maxCols).fill('---').join(' | ') + ' |');
+
+    for (let d = 1; d < parsedRows.length; d++) {
+      const rowObj = parsedRows[d];
+      const cells = [...rowObj.cells];
+      while (cells.length < maxCols) {
+        cells.push('');
+      }
+
+      const formattedCells = cells.map((cellStr) => {
+        if (!cellStr) return '';
+
+        if (rowObj.citeId && !cellStr.includes('<mark')) {
+          return `<mark id="${rowObj.citeId}" data-cite-id="${rowObj.citeId}">${cellStr}</mark>`;
+        }
+        return cellStr;
+      });
+
+      normalizedTableLines.push('| ' + formattedCells.map((c) => c || ' ').join(' | ') + ' |');
+    }
+
+    outputBlocks.push(normalizedTableLines.join('\n'));
+  }
+
+  return outputBlocks.join('\n\n');
+}
+
+function formatSECParagraphsAndHeadings(text: string): string {
+  if (!text) return '';
+
+  let cleaned = text;
+
+  // 1. Universal Deduplication of Repeated Line-Start Words/Phrases (ZERO hardcoded words)
+  // Replaces "Title Title sentence..." with "*Title*\n\nTitle sentence..."
+  cleaned = cleaned.replace(
+    /(?:^|\n)\s*(<mark[^>]*>)?\s*\b([A-Z][a-zA-Z0-9&, -]{1,40})\s+\2\b/gm,
+    (_match, openMark, category) => {
+      const markStr = openMark || '';
+      return `\n\n*${category}*\n\n${markStr}${category}`;
+    }
+  );
+
+  // 2. Universal Standalone Line Heading Formatting (ZERO hardcoded words)
+  // Short standalone lines (< 65 chars, no ending punctuation like .!? or :, no table pipes) become italicized section headings
+  const lines = cleaned.split('\n');
+  const processedLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
+
+    const isHeadingLabel =
+      line.length > 1 &&
+      line.length <= 65 &&
+      !/[.!?:]$/.test(line) &&
+      !line.includes('|') &&
+      !line.includes('<mark') &&
+      !line.startsWith('*') &&
+      !line.startsWith('#') &&
+      !/^\d+$/.test(line) &&
+      nextLine.length > 0;
+
+    if (isHeadingLabel) {
+      processedLines.push(`*${line}*`);
+      processedLines.push(''); // blank line after heading
+    } else {
+      processedLines.push(lines[i]);
+    }
+  }
+
+  cleaned = processedLines.join('\n');
+
+  // 3. Ensure double line breaks between consecutive paragraphs or <mark> tags
+  cleaned = cleaned.replace(/<\/mark>\s*<mark/g, '</mark>\n\n<mark');
+
+  return cleaned;
+}
+
+function renderHighlightedMarkdown(text: string): { __html: string } {
+  if (!text) return { __html: '' };
+
+  try {
+    // 1. Normalize and fix broken Markdown table pipe structures
+    const normalized = normalizeMarkdownTables(text);
+
+    // 2. Format SEC paragraph line breaks and subsection headings
+    const formatted = formatSECParagraphsAndHeadings(normalized);
+
+    // 3. Parse Markdown into HTML structure (including <table>, <thead>, <tbody>, <th>, <td>)
+    const rawHtml = marked.parse(formatted) as string;
+
+    // 4. Ensure <mark> tags inside rendered HTML preserve id and data-cite-id attributes cleanly
+    const processedHtml = rawHtml.replace(
+      /<mark(?:\s+id=["']?(c\d+)["']?)?(?:\s+data-cite-id=["']?(c\d+)["']?)?\s*>(.*?)<\/mark>/gs,
+      (_match, id1, id2, content) => {
+        const citeId = (id1 || id2 || '').toLowerCase();
+        if (citeId) {
+          return `<mark id="${citeId}" data-cite-id="${citeId}" class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-semibold inline-block my-0.5 transition-all duration-300">${content}</mark>`;
+        }
+        return `<mark class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-semibold inline-block my-0.5 transition-all duration-300">${content}</mark>`;
+      }
+    );
+
+    return { __html: processedHtml };
+  } catch {
+    return { __html: text };
+  }
+}
+
 function computeMarkScore(markText: string, rawQuery: string): number {
+
   if (!markText || !rawQuery) return 0;
 
   const mLower = markText.toLowerCase().trim();
@@ -342,8 +609,8 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                       )}
                     </button>
                   </div>
-                  <div className="italic whitespace-pre-line leading-relaxed text-gray-700">
-                    "{renderHighlightedText(textToDisplay, isHighlighted)}"
+                  <div className="markdown-drawer-content max-w-none text-xs text-gray-800 leading-relaxed overflow-x-auto">
+                    <div dangerouslySetInnerHTML={renderHighlightedMarkdown(textToDisplay)} />
                   </div>
                 </div>
 

@@ -35,7 +35,7 @@ def add_grounded_chunks(chunks: List[dict]):
 
 
 def annotate_text_with_clauses(content: str, marked_items: list) -> str:
-    """Wraps exact or matching sentence blocks in <mark id="c1" data-cite-id="c1"> tags inside content."""
+    """Wraps exact or matching sentence blocks in <mark id="c1" data-cite-id="c1"> tags inside content while preserving standalone heading lines."""
     if not content or not marked_items:
         return content
 
@@ -63,19 +63,27 @@ def annotate_text_with_clauses(content: str, marked_items: list) -> str:
             annotated = annotated.replace(clause_clean, mark_tag, 1)
             continue
 
-        # Try sentence-level matching if Gemini modified minor words or capitalization
-        sentences = re.split(r'(?<=[.!?])\s+', annotated)
-        for s in sentences:
-            s_clean = s.strip()
-            if not s_clean or len(s_clean) < 15 or "<mark" in s:
-                continue
+        # Split content by line breaks to preserve native GCS section headers & blank lines
+        lines = annotated.split('\n')
+        new_lines = []
+        matched = False
 
-            words = [w for w in re.findall(r'\b[A-Za-z0-9\$\.]+\b', clause_clean) if len(w) > 3]
-            match_count = sum(1 for w in words if w in s_clean)
-            if words and (match_count / len(words)) >= 0.5:
-                s_mark_tag = f'<mark id="{cite_id}" data-cite-id="{cite_id}">{s_clean}</mark>'
-                annotated = annotated.replace(s_clean, s_mark_tag, 1)
-                break
+        for line in lines:
+            line_clean = line.strip()
+            # Do NOT wrap short standalone section headings (< 60 chars, no sentence ending punctuation)
+            is_heading = len(line_clean) <= 60 and not re.search(r'[.!?:]$', line_clean) and not line_clean.startswith('|')
+            if not matched and line_clean and len(line_clean) >= 15 and not is_heading and "<mark" not in line:
+                words = [w for w in re.findall(r'\b[A-Za-z0-9\$\.]+\b', clause_clean) if len(w) > 3]
+                match_count = sum(1 for w in words if w in line_clean)
+                if words and (match_count / len(words)) >= 0.5:
+                    line_marked = f'<mark id="{cite_id}" data-cite-id="{cite_id}">{line_clean}</mark>'
+                    new_lines.append(line.replace(line_clean, line_marked))
+                    matched = True
+                    continue
+            new_lines.append(line)
+
+        if matched:
+            annotated = '\n'.join(new_lines)
 
     return annotated
 
@@ -177,15 +185,19 @@ def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str, cl
             if not raw_text:
                 return chunk
 
-            prompt = f"""You are an SEC filing grounding specialist. Given the SEC 10-K filing excerpt and the Analyst Narrative claims below, identify the exact verbatim sentence block or key clause directly from the SEC 10-K filing excerpt that directly grounds EACH claim.
+            prompt = f"""You are an SEC filing grounding specialist. Given the SEC 10-K filing excerpt (which contains text and Markdown tables) and the Analyst Narrative claims below, identify the exact verbatim sentence block, table row, or specific table cell value directly from the SEC 10-K filing excerpt that directly grounds EACH claim.
 
 CRITICAL INSTRUCTIONS:
-1. Extract ONLY verbatim sentence blocks or clauses directly present in the SEC 10-K FILING EXCERPT below.
-2. Return each verbatim sentence block enclosed inside <mark id="c1">quote</mark>, <mark id="c2">quote</mark>, etc., matching the claim ID [c1], [c2]...
-3. Do NOT rephrase, summarize, translate, or alter any words from the original filing text.
-4. Output format (one per line):
-   <mark id="c1">Verbatim filing quote grounding claim c1</mark>
-   <mark id="c2">Verbatim filing quote grounding claim c2</mark>
+1. Extract ONLY verbatim text, table rows, or cell values directly present in the SEC 10-K FILING EXCERPT below.
+2. For narrative text: Return the verbatim sentence enclosed in <mark id="c1">verbatim sentence</mark>.
+3. For Markdown tables: If a claim relates to data inside a Markdown table (e.g. "| Americas | $162,560 | (4)% |"):
+   - Highlight the specific cell value, e.g. <mark id="c1">$162,560</mark>
+   - OR the table row entry, e.g. <mark id="c1">| Americas | $162,560 | (4)% |</mark>
+   - Do NOT alter or break Markdown pipe `|` table delimiter syntax.
+4. Return each quote enclosed in <mark id="c1">quote</mark>, <mark id="c2">quote</mark>, etc., matching the claim ID [c1], [c2]...
+5. Output format (one per line):
+   <mark id="c1">Verbatim quote or table cell grounding claim c1</mark>
+   <mark id="c2">Verbatim quote or table cell grounding claim c2</mark>
 
 SEC 10-K FILING EXCERPT:
 {raw_text[:3000]}
@@ -367,7 +379,11 @@ def clean_sec_document_text(raw_text: str) -> str:
     text = re.sub(r'(?:^|\n|\s)\((?:[a-z]|\d{1,2}|i|ii|iii|iv|v)\)\s+', '\n- ', text)
     text = re.sub(r'(?:^|\n|\s)[•·]\s*', '\n- ', text)
 
-    # 5. Generic paragraph boundary separation (excluding Markdown table lines starting with '|')
+    # 5. Generic paragraph boundary separation and table preamble splitting
+    # Split run-on preamble text before table double-pipe headers (e.g. "... (dollars in millions): || 2024 | 2023 | 2022 |")
+    text = re.sub(r'([^|\n]{10,}:?)\s*\|\|\s*', r'\1\n\n| ', text)
+    text = re.sub(r'([^|\n]{10,}\(dollars in millions\):?)\s*\|\s*', r'\1\n\n| ', text)
+
     lines = text.split('\n')
     processed_lines = []
     for line in lines:

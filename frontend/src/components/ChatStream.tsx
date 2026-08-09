@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { TrendingUp, User, Send, Loader2 } from 'lucide-react';
 import { marked } from 'marked';
-import { AnalysisResponse, ChatMessage } from '../types';
+import { AnalysisResponse, ChatMessage, ActiveSourceQuery } from '../types';
 import { A2UISurface } from './A2UI/A2UISurface';
 import { FinancialInlineTable } from './A2UI/FinancialInlineTable';
 
@@ -13,7 +13,7 @@ interface ChatStreamProps {
   onSendMessage: () => void;
   onChipClick: (prompt: string) => void;
   onSelectMessageResponse?: (data: AnalysisResponse) => void;
-  onSelectSourceQuery?: (query: string) => void;
+  onSelectSourceQuery?: (query: ActiveSourceQuery | string) => void;
 }
 
 interface MessageSegment {
@@ -295,9 +295,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
                       isAgent ? 'text-[#1A73E8] font-heading' : 'text-blue-100'
                     }`}
                   >
-                    {isAgent
-                      ? `SEC Analyst Agent • (${msg.data?.model_used || 'Vertex AI (gemini-2.5-pro)'})`
-                      : 'Financial Analyst'}
+                    {isAgent ? 'SEC Analyst Agent' : 'Financial Analyst'}
                   </span>
                   <span className={`text-[10px] ${isAgent ? 'text-gray-400' : 'text-blue-100'}`}>
                     {msg.timestamp}

@@ -307,3 +307,100 @@ body {
   background: rgba(26, 115, 232, 0.08);
 }
 
+/* Grounded Context Drawer Markdown Table & Cell Highlighting Styles */
+.markdown-drawer-content {
+  font-family: 'Inter', sans-serif;
+}
+
+.markdown-drawer-content p {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.markdown-drawer-content em {
+  display: block;
+  font-style: italic;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-top: 0.85rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.markdown-drawer-content h1,
+.markdown-drawer-content h2,
+.markdown-drawer-content h3 {
+  font-family: 'Outfit', sans-serif;
+  color: #1a73e8;
+  font-weight: 600;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.markdown-drawer-content table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 11px;
+}
+
+.markdown-drawer-content th {
+  background-color: #f1f3f4;
+  color: #1a73e8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #dadce0;
+  border-right: 1px solid #e8eaed;
+}
+
+.markdown-drawer-content th:last-child {
+  border-right: none;
+}
+
+.markdown-drawer-content td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e8eaed;
+  border-right: 1px solid #e8eaed;
+  color: #3c4043;
+  line-height: 1.4;
+}
+
+.markdown-drawer-content tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-drawer-content td:last-child {
+  border-right: none;
+}
+
+.markdown-drawer-content tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
+
+.markdown-drawer-content mark {
+  background-color: #fef08a;
+  color: #854d0e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #f59e0b;
+  font-weight: 600;
+  display: inline-block;
+  margin: 1px 0;
+}
+
+.markdown-drawer-content td mark {
+  padding: 1px 4px;
+  margin: 0;
+}
+
+

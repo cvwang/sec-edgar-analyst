@@ -684,9 +684,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                     ? 'source-card-highlight'
                     : isBQ
                     ? 'bg-white border border-cyan-300 shadow-sm'
-                    : idx === 0
-                    ? 'bg-white border border-blue-300 shadow-sm'
-                    : 'bg-white border border-gray-200 shadow-xs hover:border-blue-200'
+                    : 'bg-white border border-purple-300 shadow-xs hover:border-purple-400'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -694,7 +692,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                     {isBQ ? (
                       <Database className="w-3.5 h-3.5 text-cyan-600" />
                     ) : (
-                      <FileText className="w-3.5 h-3.5 text-[#1A73E8]" />
+                      <FileText className="w-3.5 h-3.5 text-purple-600" />
                     )}
                     {chunk.company_name} FY{chunk.fiscal_year} {isBQ ? 'Audited Metrics' : '10-K'}
                   </span>

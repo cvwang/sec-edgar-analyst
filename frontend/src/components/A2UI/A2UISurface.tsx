@@ -61,12 +61,12 @@ class A2UIErrorBoundary extends React.Component<{ children: React.ReactNode }, E
   render() {
     if (this.state.hasError) {
       return (
-        <div className="my-3 p-3 border border-rose-500/40 bg-rose-950/20 rounded-xl text-xs flex flex-col gap-1 text-rose-400">
+        <div className="my-3 p-3 border border-rose-200 bg-rose-50 rounded-xl text-xs flex flex-col gap-1 text-[#EA4335]">
           <div className="flex items-center gap-2 font-semibold">
             <AlertTriangle className="h-4 w-4" />
             <span>A2UI Component Render Error</span>
           </div>
-          <p className="text-slate-400 text-[11px]">{this.state.error?.message || 'Unable to render visual component.'}</p>
+          <p className="text-gray-600 text-[11px]">{this.state.error?.message || 'Unable to render visual component.'}</p>
         </div>
       );
     }
@@ -121,20 +121,20 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
   if (error) {
     if (isMessageRunning) {
       return (
-        <div className="w-full my-3 p-4 rounded-xl bg-slate-900/60 border border-slate-800 animate-pulse flex flex-col gap-2">
-          <div className="h-6 w-1/3 bg-slate-800 rounded" />
-          <div className="h-20 w-full bg-slate-800/60 rounded-xl" />
+        <div className="w-full my-3 p-4 rounded-xl bg-gray-100 border border-gray-200 animate-pulse flex flex-col gap-2">
+          <div className="h-6 w-1/3 bg-gray-200 rounded" />
+          <div className="h-20 w-full bg-gray-200/60 rounded-xl" />
         </div>
       );
     }
     return (
-      <div className="my-3 p-4 border border-rose-500/40 bg-rose-950/20 rounded-xl text-xs flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-rose-400 font-semibold">
+      <div className="my-3 p-4 border border-rose-200 bg-rose-50 rounded-xl text-xs flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-[#EA4335] font-semibold">
           <AlertTriangle className="h-4 w-4" />
           <span>A2UI Render Error</span>
         </div>
-        <p className="text-slate-400 text-xs">{error}</p>
-        <pre className="mt-1 p-2 bg-slate-950 rounded text-[10px] overflow-auto max-h-32 font-mono text-slate-300 whitespace-pre">
+        <p className="text-gray-600 text-xs">{error}</p>
+        <pre className="mt-1 p-2 bg-gray-100 rounded text-[10px] overflow-auto max-h-32 font-mono text-gray-800 whitespace-pre">
           {payload}
         </pre>
       </div>
@@ -145,7 +145,7 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
     const comp = componentsMap[id];
     if (!comp) {
       return (
-        <span key={id} className="text-xs text-rose-400 bg-rose-950/40 p-1 rounded font-mono">
+        <span key={id} className="text-xs text-[#EA4335] bg-rose-50 p-1 rounded font-mono border border-rose-200">
           [Missing Component: {id}]
         </span>
       );
@@ -169,7 +169,7 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
     switch (component) {
       case 'Card':
         return (
-          <div key={id} className="border border-slate-800/80 rounded-2xl p-5 shadow-lg bg-slate-900/90 text-slate-100 flex flex-col gap-4">
+          <div key={id} className="border border-gray-200 rounded-2xl p-5 shadow-xs bg-white text-gray-900 flex flex-col gap-4">
             {children?.map((childId) => renderComponent(childId))}
           </div>
         );
@@ -191,12 +191,12 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
       case 'Text': {
         const textClass =
           variant === 'title'
-            ? 'text-base font-bold font-heading text-blue-400 tracking-tight'
+            ? 'text-base font-bold font-heading text-[#1A73E8] tracking-tight'
             : variant === 'subtitle'
-            ? 'text-xs font-semibold text-slate-400 uppercase tracking-wider'
+            ? 'text-xs font-semibold text-gray-500 uppercase tracking-wider'
             : variant === 'caption'
-            ? 'text-xs text-slate-500'
-            : 'text-sm text-slate-200 leading-relaxed';
+            ? 'text-xs text-gray-400'
+            : 'text-sm text-gray-800 leading-relaxed';
         return (
           <p key={id} className={`${textClass} whitespace-pre-wrap`}>
             {text}
@@ -206,25 +206,25 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
 
       case 'MetricCard': {
         let IndicatorIcon = Minus;
-        let trendColor = 'text-slate-400 bg-slate-800 border-slate-700';
+        let trendColor = 'text-gray-600 bg-gray-100 border-gray-200';
         if (trend === 'up') {
           IndicatorIcon = ArrowUpRight;
-          trendColor = 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30';
+          trendColor = 'text-[#34A853] bg-emerald-50 border-emerald-200';
         } else if (trend === 'down') {
           IndicatorIcon = ArrowDownRight;
-          trendColor = 'text-rose-300 bg-rose-500/15 border-rose-500/30';
+          trendColor = 'text-[#EA4335] bg-rose-50 border-rose-200';
         }
 
         return (
           <div
             key={id}
-            className="flex-1 min-w-[150px] border border-slate-800 rounded-xl p-4 bg-slate-950/60 shadow-md flex flex-col gap-1.5 text-sm hover:border-slate-700 transition-colors"
+            className="flex-1 min-w-[150px] border border-gray-200 rounded-xl p-4 bg-gray-50 shadow-xs flex flex-col gap-1.5 text-sm hover:border-blue-300 transition-colors"
           >
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">
               {label}
             </span>
             <div className="flex items-baseline justify-between gap-2 mt-1">
-              <span className="text-2xl font-bold tracking-tight text-white font-mono">{value}</span>
+              <span className="text-2xl font-bold tracking-tight text-gray-900 font-mono">{value}</span>
               {change && (
                 <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold border ${trendColor}`}>
                   <IndicatorIcon className="h-3.5 w-3.5 shrink-0" />
@@ -282,7 +282,7 @@ const A2UISurfaceContent: React.FC<A2UISurfaceProps> = ({
 
       default:
         return (
-          <div key={id} className="text-xs text-rose-400 p-2 bg-rose-950/40 rounded font-mono">
+          <div key={id} className="text-xs text-[#EA4335] p-2 bg-rose-50 border border-rose-200 rounded font-mono">
             [Unsupported A2UI Component: {component}]
           </div>
         );

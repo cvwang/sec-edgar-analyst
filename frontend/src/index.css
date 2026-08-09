@@ -5,29 +5,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=Fira+Code:wght@400;600&display=swap');
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
-  background-color: #090d16;
-  color: #f8fafc;
+  background-color: #f8f9fa;
+  color: #202124;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
 
-/* Glassmorphism utility classes */
+/* GCP Light Elevation Utility Classes */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.05);
 }
 
 /* Custom scrollbars */
@@ -37,24 +36,24 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: #f1f3f4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #dadce0;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.4);
+  background: #1a73e8;
 }
 
-/* Enhanced Markdown Typography Styles */
+/* Enhanced GCP Markdown Typography Styles */
 .markdown-content p {
   margin-top: 0.5rem;
   margin-bottom: 0.75rem;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #3c4043;
 }
 
 .markdown-content p:first-child {
@@ -70,7 +69,7 @@ body {
 .markdown-content h3,
 .markdown-content h4 {
   font-family: 'Outfit', sans-serif;
-  color: #60a5fa;
+  color: #1a73e8;
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
   font-weight: 600;
@@ -79,7 +78,7 @@ body {
 
 .markdown-content h1 {
   font-size: 1.25rem;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  border-bottom: 1px solid #dadce0;
   padding-bottom: 0.35rem;
 }
 
@@ -89,17 +88,17 @@ body {
 
 .markdown-content h3 {
   font-size: 0.98rem;
-  color: #93c5fd;
+  color: #174ea6;
 }
 
 .markdown-content h4 {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: #3c4043;
 }
 
 .markdown-content strong,
 .markdown-content b {
-  color: #f1f5f9;
+  color: #202124;
   font-weight: 600;
 }
 
@@ -122,11 +121,11 @@ body {
   margin-top: 0.35rem;
   margin-bottom: 0.35rem;
   line-height: 1.65;
-  color: #e2e8f0;
+  color: #3c4043;
 }
 
 .markdown-content li::marker {
-  color: #60a5fa;
+  color: #1a73e8;
 }
 
 .markdown-content table {
@@ -135,27 +134,27 @@ body {
   border-spacing: 0;
   margin-top: 0.85rem;
   margin-bottom: 1rem;
-  border: 1px solid rgba(51, 65, 85, 0.8);
+  border: 1px solid #dadce0;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .markdown-content th {
-  background-color: rgba(30, 41, 59, 0.9);
-  color: #93c5fd;
+  background-color: #f1f3f4;
+  color: #1a73e8;
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+  border-bottom: 1px solid #dadce0;
 }
 
 .markdown-content td {
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
-  color: #cbd5e1;
+  border-bottom: 1px solid #e8eaed;
+  color: #3c4043;
   font-size: 0.85rem;
 }
 
@@ -164,34 +163,34 @@ body {
 }
 
 .markdown-content tr:nth-child(even) {
-  background-color: rgba(15, 23, 42, 0.4);
+  background-color: #f8f9fa;
 }
 
 .markdown-content blockquote {
-  border-left: 3px solid #3b82f6;
-  background: rgba(30, 41, 59, 0.5);
+  border-left: 3px solid #1a73e8;
+  background: #e8f0fe;
   padding: 8px 12px;
   border-radius: 0 8px 8px 0;
   margin: 0.75rem 0;
   font-style: italic;
-  color: #94a3b8;
+  color: #174ea6;
 }
 
 .markdown-content code {
-  background: rgba(15, 23, 42, 0.8);
-  color: #38bdf8;
+  background: #f1f3f4;
+  color: #d93025;
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'Fira Code', monospace;
   font-size: 0.8em;
-  border: 1px solid rgba(51, 65, 85, 0.6);
+  border: 1px solid #dadce0;
 }
 
 .markdown-content pre {
-  background: #020617;
+  background: #f8f9fa;
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #1e293b;
+  border: 1px solid #dadce0;
   overflow-x: auto;
   margin: 0.75rem 0;
 }
@@ -200,12 +199,13 @@ body {
   background: transparent;
   padding: 0;
   border: none;
+  color: #202124;
 }
 
 .markdown-content hr {
   border: 0;
   height: 1px;
-  background: rgba(51, 65, 85, 0.6);
+  background: #dadce0;
   margin: 1.25rem 0;
 }
 
@@ -214,9 +214,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(30, 41, 59, 0.8);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: #e8f0fe;
+  color: #1a73e8;
+  border: 1px solid #d2e3fc;
   font-size: 11px;
   font-family: 'Fira Code', monospace;
   padding: 2px 8px;
@@ -228,16 +228,16 @@ body {
 }
 
 .source-citation-badge:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(96, 165, 250, 0.6);
+  background: #1a73e8;
+  border-color: #174ea6;
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
 }
 
 .source-card-highlight {
-  border-color: #60a5fa !important;
-  box-shadow: 0 0 24px rgba(59, 130, 246, 0.55), inset 0 0 12px rgba(59, 130, 246, 0.2) !important;
-  background-color: rgba(30, 58, 138, 0.4) !important;
+  border-color: #1a73e8 !important;
+  box-shadow: 0 0 16px rgba(26, 115, 232, 0.35), inset 0 0 8px rgba(26, 115, 232, 0.1) !important;
+  background-color: #feefc3 !important;
   transform: scale(1.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -254,7 +254,5 @@ body {
 
 .markdown-content li:hover,
 .markdown-content p:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(26, 115, 232, 0.08);
 }
-
-

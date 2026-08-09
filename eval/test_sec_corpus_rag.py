@@ -90,3 +90,30 @@ def test_sec_document_chunk_model():
     assert dumped["fiscal_year"] == 2023
     assert "<mark>" in dumped["highlight_excerpt"]
     assert "Vertex AI Search" in dumped["citation"]
+
+
+def test_annotate_grounded_highlights_guaranteed_fallback():
+    """Verifies that annotate_grounded_highlights_with_llm and fallback_sentence_highlight guarantee <mark> tags in content and excerpt."""
+    from agent.rag.sec_corpus import annotate_grounded_highlights_with_llm, fallback_sentence_highlight, derive_highlight_excerpt_from_content
+
+    chunks = [{
+        "chunk_id": "c1",
+        "ticker": "AAPL",
+        "company_name": "Apple Inc.",
+        "fiscal_year": 2023,
+        "section": "Item 7 - MD&A",
+        "content": "iPhone net sales decreased 2% due to foreign currency headwinds. Mac net sales decreased 27% due to market conditions. Services revenue grew 9% reaching all-time highs.",
+        "citation": "Vertex AI Search [gs://aapl_2023.md]",
+        "gcs_uri": "gs://aapl_2023.md",
+    }]
+    narrative = "Services revenue grew 9% reaching record performance while Mac net sales fell."
+
+    result = annotate_grounded_highlights_with_llm(chunks, narrative)
+    assert len(result) == 1
+    annotated_chunk = result[0]
+
+    assert "<mark>" in annotated_chunk["content"]
+    assert "</mark>" in annotated_chunk["content"]
+    assert "<mark>" in annotated_chunk["highlight_excerpt"]
+    assert "</mark>" in annotated_chunk["highlight_excerpt"]
+

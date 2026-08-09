@@ -45,11 +45,14 @@ def annotate_text_with_clauses(content: str, marked_clauses: list) -> str:
         if not clause_clean or len(clause_clean) < 8:
             continue
 
+        if f"<mark>{clause_clean}</mark>" in annotated:
+            continue
+
         if clause_clean in annotated:
             annotated = annotated.replace(clause_clean, f"<mark>{clause_clean}</mark>")
             continue
 
-        # Try sentence-level matching if Gemini modified minor words
+        # Try sentence-level matching if Gemini modified minor words or capitalization
         sentences = re.split(r'(?<=[.!?])\s+', annotated)
         for s in sentences:
             s_clean = s.strip()
@@ -63,6 +66,76 @@ def annotate_text_with_clauses(content: str, marked_clauses: list) -> str:
                 break
 
     return annotated
+
+
+def fallback_sentence_highlight(content: str, narrative: str) -> str:
+    """Deterministically finds the sentence in content with maximum keyword overlap with narrative and wraps it in <mark>."""
+    if not content:
+        return content
+
+    if "<mark>" in content:
+        return content
+
+    sentences = re.split(r'(?<=[.!?])\s+', content)
+    if not sentences:
+        return f"<mark>{content[:300]}</mark>"
+
+    stop_words = {"this", "that", "with", "from", "were", "have", "been", "which", "their", "there", "about", "other", "under", "will", "would", "could", "should"}
+    narrative_words = set(
+        w.lower() for w in re.findall(r'\b[A-Za-z0-9]{4,}\b', narrative)
+        if w.lower() not in stop_words
+    )
+
+    best_sentence = None
+    best_score = -1
+
+    for s in sentences:
+        s_clean = s.strip()
+        if len(s_clean) < 15:
+            continue
+        s_words = set(w.lower() for w in re.findall(r'\b[A-Za-z0-9]{4,}\b', s_clean))
+        score = len(s_words.intersection(narrative_words))
+        if score > best_score:
+            best_score = score
+            best_sentence = s_clean
+
+    if best_sentence and best_sentence in content:
+        return content.replace(best_sentence, f"<mark>{best_sentence}</mark>")
+
+    # Fallback to the first non-trivial sentence
+    for s in sentences:
+        s_clean = s.strip()
+        if len(s_clean) >= 20 and s_clean in content:
+            return content.replace(s_clean, f"<mark>{s_clean}</mark>")
+
+    return f"<mark>{content[:300]}</mark>"
+
+
+def derive_highlight_excerpt_from_content(content: str) -> str:
+    """Extracts a focused 250-400 character excerpt around the <mark> tag in content."""
+    if not content:
+        return ""
+
+    if "<mark>" not in content:
+        return content[:350]
+
+    mark_idx = content.find("<mark>")
+    end_mark_idx = content.find("</mark>", mark_idx)
+    if end_mark_idx == -1:
+        end_mark_idx = mark_idx + 100
+    else:
+        end_mark_idx += 7  # include len("</mark>")
+
+    start = max(0, mark_idx - 80)
+    end = min(len(content), end_mark_idx + 120)
+
+    excerpt = content[start:end].strip()
+    if start > 0:
+        excerpt = "..." + excerpt
+    if end < len(content):
+        excerpt = excerpt + "..."
+
+    return excerpt
 
 
 def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str) -> List[dict]:
@@ -84,12 +157,16 @@ def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str) ->
             if not raw_text:
                 return chunk
 
-            prompt = f"""You are an SEC filing grounding specialist. Given the following SEC 10-K filing excerpt and an AI Analyst Narrative response, identify the exact 1-3 key sentence blocks or verbatim clauses from the SEC 10-K filing excerpt that directly substantiate or ground the claims in the narrative.
+            prompt = f"""You are an SEC filing grounding specialist. Given the SEC 10-K filing excerpt and the AI Analyst Narrative below, identify 1 to 3 exact verbatim sentence blocks or key clauses directly from the SEC 10-K filing excerpt that directly ground or substantiate the claims in the narrative.
 
-Return the SEC 10-K filing excerpt with those exact supporting sentence blocks enclosed inside <mark> and </mark> tags. Do not alter any words in the filing text. Return ONLY the annotated excerpt text.
+CRITICAL INSTRUCTIONS:
+1. Extract ONLY verbatim sentence blocks or clauses directly present in the SEC 10-K FILING EXCERPT below.
+2. Return each verbatim sentence block or clause enclosed inside <mark> and </mark> tags.
+3. Do NOT rephrase, summarize, translate, or alter any words from the original filing excerpt text.
+4. Output ONLY the <mark>quote</mark> blocks, separated by newlines.
 
 SEC 10-K FILING EXCERPT:
-{raw_text[:2500]}
+{raw_text[:3000]}
 
 ANALYST NARRATIVE:
 {narrative[:1500]}
@@ -103,17 +180,17 @@ ANALYST NARRATIVE:
 
                 if response and response.text:
                     annotated = response.text.strip()
-                    if "<mark>" in annotated:
-                        chunk["highlight_excerpt"] = annotated
-                        # Annotate full content so highlights persist in expanded view
-                        marked_clauses = re.findall(r'<mark>(.*?)</mark>', annotated, flags=re.DOTALL)
+                    marked_clauses = re.findall(r'<mark>(.*?)</mark>', annotated, flags=re.DOTALL)
+                    if marked_clauses:
                         chunk["content"] = annotate_text_with_clauses(chunk["content"], marked_clauses)
-                    else:
-                        chunk["highlight_excerpt"] = f"<mark>{annotated[:350]}</mark>"
             except Exception as e:
                 logging.warning(f"Single chunk annotation error: {e}")
-                if not chunk.get("highlight_excerpt"):
-                    chunk["highlight_excerpt"] = raw_text[:350]
+
+            # Ensure content has <mark> tag via deterministic fallback if LLM missed it
+            chunk["content"] = fallback_sentence_highlight(chunk["content"], narrative)
+
+            # Derive highlight_excerpt directly from content around <mark> tag
+            chunk["highlight_excerpt"] = derive_highlight_excerpt_from_content(chunk["content"])
 
             return chunk
 
@@ -124,8 +201,8 @@ ANALYST NARRATIVE:
     except Exception as err:
         logging.warning(f"LLM grounded highlighting fallback: {err}")
         for chunk in chunks:
-            if not chunk.get("highlight_excerpt"):
-                chunk["highlight_excerpt"] = chunk.get("content", "")[:350]
+            chunk["content"] = fallback_sentence_highlight(chunk.get("content", ""), narrative)
+            chunk["highlight_excerpt"] = derive_highlight_excerpt_from_content(chunk["content"])
 
     return chunks
 

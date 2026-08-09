@@ -55,24 +55,24 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
   const isUp = trend === 'up';
   const isDown = trend === 'down';
 
-  const barColor1 = 'fill-slate-600/60 hover:fill-slate-500/80 transition-colors duration-200';
+  const barColor1 = 'fill-gray-300 hover:fill-gray-400 transition-colors duration-200';
   const barColor2 = isUp
-    ? 'fill-emerald-500/80 hover:fill-emerald-400/90 transition-colors duration-200'
+    ? 'fill-[#34A853] hover:fill-emerald-600 transition-colors duration-200'
     : isDown
-    ? 'fill-rose-500/80 hover:fill-rose-400/90 transition-colors duration-200'
-    : 'fill-blue-500/80 hover:fill-blue-400/90 transition-colors duration-200';
+    ? 'fill-[#EA4335] hover:fill-rose-600 transition-colors duration-200'
+    : 'fill-[#1A73E8] hover:fill-[#1557B0] transition-colors duration-200';
 
   const labelY1 = startVal >= 0 ? y1 - 6 : y1 + height1 + 12;
   const labelY2 = endVal >= 0 ? y2 - 6 : y2 + height2 + 12;
 
   return (
-    <div className="flex flex-col items-center p-4 border border-slate-800 rounded-xl bg-slate-900/80 hover:border-slate-700 transition-all duration-200 flex-1 min-w-[150px] shadow-md">
-      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">
+    <div className="flex flex-col items-center p-4 border border-gray-200 rounded-xl bg-white hover:border-blue-300 transition-all duration-200 flex-1 min-w-[150px] shadow-xs">
+      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-2">
         {label}
       </span>
       <svg width="130" height="110" className="overflow-visible mt-1">
         {/* Baseline Grid Line */}
-        <line x1="0" y1={baselineY} x2="130" y2={baselineY} className="stroke-slate-700 stroke-1" />
+        <line x1="0" y1={baselineY} x2="130" y2={baselineY} className="stroke-gray-300 stroke-1" />
 
         {!allPositive && (
           <line
@@ -80,7 +80,7 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
             y1={baselineY}
             x2="130"
             y2={baselineY}
-            className="stroke-slate-600 stroke-1 stroke-dasharray-2"
+            className="stroke-gray-400 stroke-1 stroke-dasharray-2"
           />
         )}
 
@@ -97,7 +97,7 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
           x={22 + barWidth / 2}
           y={labelY1}
           textAnchor="middle"
-          className="text-[10px] font-semibold fill-slate-300 font-mono"
+          className="text-[10px] font-semibold fill-gray-700 font-mono"
         >
           {formattedStart}
         </text>
@@ -105,7 +105,7 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
           x={22 + barWidth / 2}
           y="95"
           textAnchor="middle"
-          className="text-[9px] fill-slate-400 font-medium"
+          className="text-[9px] fill-gray-500 font-medium"
         >
           {startLabel}
         </text>
@@ -123,7 +123,7 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
           x={80 + barWidth / 2}
           y={labelY2}
           textAnchor="middle"
-          className="text-[10px] font-bold fill-white font-mono"
+          className="text-[10px] font-bold fill-gray-900 font-mono"
         >
           {formattedEnd}
         </text>
@@ -131,7 +131,7 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
           x={80 + barWidth / 2}
           y="95"
           textAnchor="middle"
-          className="text-[9px] fill-slate-400 font-medium"
+          className="text-[9px] fill-gray-500 font-medium"
         >
           {endLabel}
         </text>
@@ -139,10 +139,10 @@ const MiniBarChart: React.FC<MiniBarChartProps> = ({
       <span
         className={`text-[10px] font-bold mt-4 px-2 py-0.5 rounded-full inline-flex items-center gap-0.5 ${
           isUp
-            ? 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/30'
+            ? 'text-[#34A853] bg-emerald-50 border border-emerald-200'
             : isDown
-            ? 'text-rose-300 bg-rose-500/15 border border-rose-500/30'
-            : 'text-slate-300 bg-slate-800 border border-slate-700'
+            ? 'text-[#EA4335] bg-rose-50 border border-rose-200'
+            : 'text-gray-700 bg-gray-100 border border-gray-300'
         }`}
       >
         {changeLabel}
@@ -189,10 +189,10 @@ export const FinancialMetricsChart: React.FC<FinancialMetricsChartProps> = ({
     const { data: pData, isLoading: pLoading, error: pError } = peerMetrics;
     if (pLoading) {
       return (
-        <div className="w-full flex items-center justify-center p-6 border border-dashed border-slate-800 rounded-xl bg-slate-900/40">
+        <div className="w-full flex items-center justify-center p-6 border border-dashed border-gray-300 rounded-xl bg-gray-50">
           <div className="flex flex-col items-center gap-2">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
-            <span className="text-xs text-slate-400 animate-pulse">Generating peer comparison bar charts...</span>
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#1A73E8] border-t-transparent" />
+            <span className="text-xs text-gray-500 animate-pulse">Generating peer comparison bar charts...</span>
           </div>
         </div>
       );
@@ -200,7 +200,7 @@ export const FinancialMetricsChart: React.FC<FinancialMetricsChartProps> = ({
 
     if (pError || !pData?.primary || !pData?.peer) {
       return (
-        <div className="text-xs text-rose-400 p-3 border rounded-xl border-rose-500/30 bg-rose-950/20">
+        <div className="text-xs text-[#EA4335] p-3 border rounded-xl border-rose-200 bg-rose-50">
           Failed to fetch peer chart metrics for {safeTicker} vs {safePeerTicker}.
         </div>
       );
@@ -273,10 +273,10 @@ export const FinancialMetricsChart: React.FC<FinancialMetricsChartProps> = ({
 
   if (isLoading) {
     return (
-      <div className="w-full flex items-center justify-center p-6 border border-dashed border-slate-800 rounded-xl bg-slate-900/40">
+      <div className="w-full flex items-center justify-center p-6 border border-dashed border-gray-300 rounded-xl bg-gray-50">
         <div className="flex flex-col items-center gap-2">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
-          <span className="text-xs text-slate-400 animate-pulse">Generating SVG chart visuals...</span>
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#1A73E8] border-t-transparent" />
+          <span className="text-xs text-gray-500 animate-pulse">Generating SVG chart visuals...</span>
         </div>
       </div>
     );
@@ -284,7 +284,7 @@ export const FinancialMetricsChart: React.FC<FinancialMetricsChartProps> = ({
 
   if (error || !data?.metrics?.start_period || !data?.metrics?.end_period || !data?.metrics?.variances) {
     return (
-      <div className="text-xs text-rose-400 p-3 border rounded-xl border-rose-500/30 bg-rose-950/20">
+      <div className="text-xs text-[#EA4335] p-3 border rounded-xl border-rose-200 bg-rose-50">
         Failed to fetch chart metrics for {safeTicker}.
       </div>
     );

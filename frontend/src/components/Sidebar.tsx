@@ -82,18 +82,18 @@ export function Sidebar({
 
   if (!isOpen) {
     return (
-      <div className="h-full bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 flex flex-col items-center py-3.5 px-2 select-none z-30 transition-all duration-200 w-14 shrink-0">
+      <div className="h-full bg-[#F8F9FA] border-r border-gray-200 flex flex-col items-center py-3.5 px-2 select-none z-30 transition-all duration-200 w-14 shrink-0">
         <button
           onClick={onToggleOpen}
           title="Expand sidebar"
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center mb-2"
+          className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center mb-2"
         >
-          <PanelLeftOpen className="w-5 h-5 text-blue-400" />
+          <PanelLeftOpen className="w-5 h-5 text-[#1A73E8]" />
         </button>
         <button
           onClick={onCreateNewSession}
           title="New Analysis"
-          className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 cursor-pointer"
+          className="p-2 bg-[#1A73E8] hover:bg-[#1557B0] text-white rounded-xl shadow-md transition-all hover:scale-105 cursor-pointer"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -104,19 +104,14 @@ export function Sidebar({
   }
 
   return (
-    <aside style={{ width: `${width}px` }} className="h-full bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 flex flex-col shrink-0 select-none z-30 transition-all duration-75 relative">
+    <aside style={{ width: `${width}px` }} className="h-full bg-[#F8F9FA] border-r border-gray-200 flex flex-col shrink-0 select-none z-30 transition-all duration-75 relative">
       {/* Sidebar Header */}
-      <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-[#ffffff] font-bold text-sm justify-center shadow-md shadow-blue-500/20">
-            📊
-          </div>
-          <span className="font-semibold text-slate-200 text-sm tracking-wide">Conversations</span>
-        </div>
+      <div className="p-3.5 border-b border-gray-200 flex items-center justify-between gap-2">
+        <span className="font-semibold text-gray-800 text-sm tracking-wide">Chats</span>
         <button
           onClick={onToggleOpen}
           title="Collapse sidebar"
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+          className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
         >
           <PanelLeftClose className="w-4 h-4" />
         </button>
@@ -126,7 +121,7 @@ export function Sidebar({
       <div className="p-3 space-y-2.5">
         <button
           onClick={onCreateNewSession}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-medium text-sm shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-150 active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1A73E8] hover:bg-[#1557B0] text-white rounded-xl font-medium text-sm shadow-sm transition-all duration-150 active:scale-[0.98]"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -137,7 +132,7 @@ export function Sidebar({
         {/* Search input */}
         <div className="relative">
           <svg
-            className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -149,7 +144,7 @@ export function Sidebar({
             placeholder="Search threads..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950/60 text-slate-200 placeholder-slate-500 text-xs rounded-lg pl-8 pr-3 py-1.5 border border-slate-800 focus:outline-none focus:border-blue-500/50 transition-colors"
+            className="w-full bg-white text-gray-800 placeholder-gray-400 text-xs rounded-lg pl-8 pr-3 py-1.5 border border-gray-300 focus:outline-none focus:border-[#1A73E8] transition-colors shadow-xs"
           />
         </div>
       </div>
@@ -157,7 +152,7 @@ export function Sidebar({
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1 custom-scrollbar">
         {filteredSessions.length === 0 ? (
-          <div className="text-center py-8 px-4 text-slate-500 text-xs">
+          <div className="text-center py-8 px-4 text-gray-400 text-xs">
             {searchQuery ? 'No matching threads' : 'No saved conversations'}
           </div>
         ) : (
@@ -171,8 +166,8 @@ export function Sidebar({
                 onClick={() => onSelectSession(session.session_id)}
                 className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150 text-xs border ${
                   isActive
-                    ? 'bg-blue-600/15 border-blue-500/40 text-blue-100 font-medium shadow-sm'
-                    : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+                    ? 'bg-blue-50 border-blue-300 text-[#1A73E8] font-semibold shadow-xs'
+                    : 'border-transparent text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'
                 }`}
               >
                 <div className="flex-1 min-w-0 pr-2">
@@ -185,22 +180,22 @@ export function Sidebar({
                       onBlur={() => saveRename(session.session_id)}
                       onKeyDown={(e) => handleKeyDown(e, session.session_id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-full bg-slate-950 text-white text-xs px-2 py-1 rounded border border-blue-500 focus:outline-none"
+                      className="w-full bg-white text-gray-900 text-xs px-2 py-1 rounded border border-[#1A73E8] focus:outline-none"
                     />
                   ) : (
                     <>
                       <div className="truncate font-medium flex items-center justify-between gap-1">
                         <span className="truncate">{session.title || 'Untitled Session'}</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 mt-1 text-[10px] text-slate-500 group-hover:text-slate-400">
+                      <div className="flex items-center justify-between gap-2 mt-1 text-[10px] text-gray-500 group-hover:text-gray-600">
                         <span>{formatRelativeTime(session.updated_at)}</span>
                         {runningSessionIds[session.session_id] ? (
-                          <span className="bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-mono flex items-center gap-1 animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                          <span className="bg-blue-100 text-[#1A73E8] border border-blue-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#1A73E8] animate-ping" />
                             Running
                           </span>
                         ) : session.turn_count > 0 ? (
-                          <span className="bg-slate-800/80 px-1.5 py-0.5 rounded text-slate-400 font-mono">
+                          <span className="bg-gray-200/80 px-1.5 py-0.5 rounded text-gray-600 font-mono">
                             {session.turn_count} turns
                           </span>
                         ) : null}
@@ -216,14 +211,14 @@ export function Sidebar({
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => onDeleteSession(session.session_id)}
-                          className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold"
+                          className="px-1.5 py-0.5 bg-[#EA4335] hover:bg-red-600 text-white rounded text-[10px] font-bold"
                           title="Confirm Delete"
                         >
                           Del
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px]"
+                          className="px-1.5 py-0.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded text-[10px]"
                           title="Cancel"
                         >
                           ✕
@@ -234,7 +229,7 @@ export function Sidebar({
                         <button
                           onClick={(e) => startEditing(e, session)}
                           title="Rename title"
-                          className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded transition-colors"
+                          className="p-1 text-gray-400 hover:text-[#1A73E8] hover:bg-gray-200 rounded transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -246,7 +241,7 @@ export function Sidebar({
                             setConfirmDeleteId(session.session_id);
                           }}
                           title="Delete thread"
-                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition-colors"
+                          className="p-1 text-gray-400 hover:text-[#EA4335] hover:bg-gray-200 rounded transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -263,11 +258,11 @@ export function Sidebar({
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 border-t border-slate-800/80 text-[11px] text-slate-500 flex items-center justify-between">
+      <div className="p-3 border-t border-gray-200 text-[11px] text-gray-500 flex items-center justify-between">
         {sessions.length > 0 ? (
           <button
             onClick={onClearAllSessions}
-            className="text-slate-400 hover:text-red-400 transition-colors flex items-center gap-1"
+            className="text-gray-500 hover:text-[#EA4335] transition-colors flex items-center gap-1"
             title="Clear all session history"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +274,7 @@ export function Sidebar({
           <span>SEC EDGAR Analyst</span>
         )}
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-[#34A853] animate-pulse" />
           Ready
         </span>
       </div>

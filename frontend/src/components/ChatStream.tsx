@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Bot, User, Send, Loader2 } from 'lucide-react';
+import { TrendingUp, User, Send, Loader2 } from 'lucide-react';
 import { marked } from 'marked';
 import { AnalysisResponse, ChatMessage } from '../types';
 import { A2UISurface } from './A2UI/A2UISurface';
@@ -100,7 +100,7 @@ function formatSourceBadgeHtml(rawText: string): string {
     ticker = tickerMatch[0].toUpperCase();
   }
 
-  // Extract Fiscal Year (e.g. 2022, 2023, 2024)
+  // Extract Fiscal Year (e.g. 2022, 2023, 2024, 2025)
   let year = '';
   const yearMatch = fullText.match(/\b(202[0-9])\b/);
   if (yearMatch) {
@@ -141,7 +141,7 @@ function formatSourceBadgeHtml(rawText: string): string {
   }
 
   const labelText = labelParts.length > 0 ? labelParts.join(' • ') : 'SEC 10-K Filing';
-  const queryAttr = (gcsUri || rawText).replace(/"/g, '&quot;');
+  const queryAttr = [gcsUri, ticker, year, section, rawText].filter(Boolean).join('|||').replace(/"/g, '&quot;');
 
   return `<button data-source-query="${queryAttr}" class="source-citation-badge hover:scale-105 active:scale-95 cursor-pointer" title="Click to highlight grounded SEC source section">📌 ${labelText}</button>`;
 }
@@ -226,7 +226,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
   ];
 
   return (
-    <main onClick={handleChatContainerClick} className="flex-1 flex flex-col h-full bg-slate-950 min-w-0 overflow-hidden relative">
+    <main onClick={handleChatContainerClick} className="flex-1 flex flex-col h-full bg-[#F8F9FA] min-w-0 overflow-hidden relative">
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages
           .filter((msg, idx, arr) => {
@@ -250,41 +250,41 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
             >
               {/* Avatar Icon */}
               <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
                   isAgent
-                    ? 'bg-blue-950/80 text-blue-400 border border-blue-500/40'
-                    : 'bg-indigo-600 text-white border border-indigo-400/40'
+                    ? 'bg-blue-50 text-[#1A73E8] border border-blue-200'
+                    : 'bg-[#1A73E8] text-white shadow-xs'
                 }`}
               >
-                {isAgent ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                {isAgent ? <TrendingUp className="w-4 h-4" /> : <User className="w-4 h-4" />}
               </div>
 
               {/* Message Bubble Container */}
               <div
                 onClick={() => isAgent && msg.data && onSelectMessageResponse?.(msg.data)}
                 title={isAgent && msg.data ? "Click to view grounded sources for this response" : undefined}
-                className={`rounded-2xl p-4 text-sm leading-relaxed shadow-lg ${
+                className={`rounded-2xl p-4 text-sm leading-relaxed shadow-xs ${
                   isAgent
-                    ? 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-tl-sm transition-all hover:border-blue-500/40 cursor-pointer'
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-400/30 text-white rounded-tr-sm'
+                    ? 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm transition-all hover:border-blue-300 cursor-pointer shadow-sm'
+                    : 'bg-[#1A73E8] text-white rounded-tr-sm shadow-sm'
                 }`}
               >
                 {/* Header info */}
                 <div
                   className={`flex items-center gap-2 mb-2 pb-1.5 border-b ${
-                    isAgent ? 'border-slate-800/80 justify-between' : 'border-blue-400/20 justify-end'
+                    isAgent ? 'border-gray-200 justify-between' : 'border-blue-300/40 justify-end'
                   }`}
                 >
                   <span
                     className={`font-semibold text-[11px] ${
-                      isAgent ? 'text-blue-400 font-heading' : 'text-blue-100'
+                      isAgent ? 'text-[#1A73E8] font-heading' : 'text-blue-100'
                     }`}
                   >
                     {isAgent
                       ? `SEC Analyst Agent • (${msg.data?.model_used || 'Vertex AI (gemini-2.5-pro)'})`
                       : 'Financial Analyst'}
                   </span>
-                  <span className={`text-[10px] ${isAgent ? 'text-slate-500' : 'text-blue-200/80'}`}>
+                  <span className={`text-[10px] ${isAgent ? 'text-gray-400' : 'text-blue-100'}`}>
                     {msg.timestamp}
                   </span>
                 </div>
@@ -314,7 +314,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
                       <div
                         key={idx}
                         className={`markdown-content max-w-none text-sm ${
-                          isAgent ? 'text-slate-200' : 'text-white'
+                          isAgent ? 'text-gray-800' : 'text-white'
                         }`}
                         dangerouslySetInnerHTML={renderMarkdown(segment.content)}
                       />
@@ -326,14 +326,13 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
           );
         })}
 
-
         {isLoading && (
           <div className="flex items-start gap-3 max-w-3xl mr-auto">
-            <div className="w-8 h-8 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-500/40 flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-200 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4" />
             </div>
-            <div className="rounded-2xl p-4 bg-slate-900/90 border border-slate-800 text-sm text-slate-300 flex items-center gap-3 rounded-tl-sm">
-              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+            <div className="rounded-2xl p-4 bg-white border border-gray-200 text-sm text-gray-700 flex items-center gap-3 rounded-tl-sm shadow-xs">
+              <Loader2 className="w-4 h-4 text-[#1A73E8] animate-spin" />
               <span>Parsing natural language intent & querying SEC 10-K RAG corpus...</span>
             </div>
           </div>
@@ -343,7 +342,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
       </div>
 
       {/* Prompt Dock */}
-      <div className="p-4 glass-panel border-t border-slate-800/80 shrink-0">
+      <div className="p-4 bg-white border-t border-gray-200 shrink-0">
         <div className="max-w-4xl mx-auto space-y-3">
           {messages.filter((m) => m.sender === 'user').length === 0 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -351,7 +350,7 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
                 <button
                   key={idx}
                   onClick={() => onChipClick(chip)}
-                  className="whitespace-nowrap px-3 py-1 rounded-full bg-slate-800/80 hover:bg-blue-600/20 text-xs font-medium text-slate-300 hover:text-blue-300 border border-slate-700/80 hover:border-blue-500/40 transition-all duration-200 shrink-0"
+                  className="whitespace-nowrap px-3 py-1 rounded-full bg-gray-100 hover:bg-blue-50 text-xs font-medium text-gray-700 hover:text-[#1A73E8] border border-gray-200 hover:border-blue-300 transition-all duration-200 shrink-0 cursor-pointer"
                 >
                   {chip}
                 </button>
@@ -359,24 +358,24 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
             </div>
           )}
 
-          <div className="relative glass-card rounded-2xl p-3 border border-slate-700/80 focus-within:border-blue-500/80 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200">
+          <div className="relative bg-white rounded-2xl p-3 border border-gray-300 focus-within:border-[#1A73E8] focus-within:ring-2 focus-within:ring-blue-100 shadow-xs transition-all duration-200">
             <textarea
               value={inputPrompt}
               onChange={(e) => setInputPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask any financial query (e.g., 'Compare Nvidia and Microsoft operating income in 2023')..."
               rows={2}
-              className="w-full bg-transparent border-none outline-none text-slate-100 text-sm placeholder-slate-500 resize-none"
+              className="w-full bg-transparent border-none outline-none text-gray-900 text-sm placeholder-gray-400 resize-none"
             />
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-500 font-mono">Press Shift + Enter for new line</span>
+              <span className="text-[11px] text-gray-400 font-mono">Press Shift + Enter for new line</span>
               <button
                 onClick={onSendMessage}
                 disabled={isLoading || !inputPrompt.trim()}
                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${
                   inputPrompt.trim() && !isLoading
-                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 cursor-pointer'
-                    : 'bg-slate-800 text-slate-600 border border-slate-700/50 cursor-not-allowed'
+                    ? 'bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-md cursor-pointer'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
                 }`}
               >
                 <Send className="w-4 h-4" />

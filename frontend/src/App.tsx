@@ -386,7 +386,7 @@ export function App() {
   const isCurrentActiveSessionLoading = !!runningSessionIds[activeSessionId];
 
   return (
-    <div className={`h-screen w-screen flex flex-col bg-darkBg overflow-hidden ${activeDrag ? 'select-none' : ''}`}>
+    <div className={`h-screen w-screen flex flex-col bg-[#F8F9FA] overflow-hidden ${activeDrag ? 'select-none' : ''}`}>
       <Header
         onOpenExportModal={() => setIsExportModalOpen(true)}
         canExport={!!lastResponse?.is_success}
@@ -411,16 +411,16 @@ export function App() {
         {isSidebarOpen && (
           <div
             onMouseDown={(e) => handleMouseDown(e, 'sidebar')}
-            className={`w-2.5 z-20 cursor-col-resize flex items-center justify-center transition-colors duration-150 relative group ${
+            className={`w-2 z-20 cursor-col-resize flex items-center justify-center transition-colors duration-150 relative group ${
               activeDrag === 'sidebar'
-                ? 'bg-blue-600/80 shadow-[0_0_12px_rgba(59,130,246,0.6)]'
-                : 'bg-slate-900/90 hover:bg-blue-600/50 border-r border-slate-800/80'
+                ? 'bg-[#1A73E8]'
+                : 'bg-gray-200 hover:bg-blue-300 border-r border-gray-300'
             }`}
             title="Drag to resize conversation sidebar width"
           >
             <div
               className={`w-1 h-8 rounded-full transition-all duration-150 ${
-                activeDrag === 'sidebar' ? 'bg-white shadow-glow' : 'bg-slate-600 group-hover:bg-blue-300'
+                activeDrag === 'sidebar' ? 'bg-white' : 'bg-gray-400 group-hover:bg-[#1A73E8]'
               }`}
             />
           </div>
@@ -452,16 +452,16 @@ export function App() {
           {isSourceDrawerOpen && (
             <div
               onMouseDown={(e) => handleMouseDown(e, 'split')}
-              className={`w-2.5 z-20 cursor-col-resize flex items-center justify-center transition-colors duration-150 relative group ${
+              className={`w-2 z-20 cursor-col-resize flex items-center justify-center transition-colors duration-150 relative group ${
                 activeDrag === 'split'
-                  ? 'bg-blue-600/80 shadow-[0_0_12px_rgba(59,130,246,0.6)]'
-                  : 'bg-slate-900/90 hover:bg-blue-600/50 border-x border-slate-800/80'
+                  ? 'bg-[#1A73E8]'
+                  : 'bg-gray-200 hover:bg-blue-300 border-x border-gray-300'
               }`}
               title="Drag to resize split panes"
             >
               <div
                 className={`w-1 h-8 rounded-full transition-all duration-150 ${
-                  activeDrag === 'split' ? 'bg-white shadow-glow' : 'bg-slate-600 group-hover:bg-blue-300'
+                  activeDrag === 'split' ? 'bg-white' : 'bg-gray-400 group-hover:bg-[#1A73E8]'
                 }`}
               />
             </div>
@@ -480,22 +480,22 @@ export function App() {
               />
             </div>
           ) : (
-            <div className="h-full bg-slate-900/95 backdrop-blur-md border-l border-slate-800/80 flex flex-col items-center py-3.5 px-2 select-none z-30 transition-all duration-200 w-14 shrink-0 justify-between">
+            <div className="h-full bg-[#F8F9FA] border-l border-gray-200 flex flex-col items-center py-3.5 px-2 select-none z-30 transition-all duration-200 w-14 shrink-0 justify-between">
               <div className="flex flex-col items-center gap-4">
                 <button
                   onClick={() => setIsSourceDrawerOpen(true)}
                   title="Expand Grounded Context Drawer"
-                  className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center mb-2"
+                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200/80 rounded-lg transition-colors cursor-pointer flex items-center justify-center mb-2"
                 >
-                  <PanelRightOpen className="w-5 h-5 text-blue-400" />
+                  <PanelRightOpen className="w-5 h-5 text-[#1A73E8]" />
                 </button>
                 <div
                   onClick={() => setIsSourceDrawerOpen(true)}
-                  className="cursor-pointer p-2 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-blue-300 flex flex-col items-center gap-2 transition-colors"
+                  className="cursor-pointer p-2 rounded-lg hover:bg-gray-200/60 text-gray-500 hover:text-[#1A73E8] flex flex-col items-center gap-2 transition-colors"
                   title="Expand Grounded Context Drawer"
                 >
-                  <Database className="w-4 h-4 text-blue-400" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 [writing-mode:vertical-lr] rotate-180 mt-1">
+                  <Database className="w-4 h-4 text-[#1A73E8]" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 [writing-mode:vertical-lr] rotate-180 mt-1">
                     Grounded Context
                   </span>
                 </div>

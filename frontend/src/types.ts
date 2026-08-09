@@ -1,6 +1,7 @@
 export interface TextChunk {
   content: string;
   highlight_excerpt?: string;
+  ticker?: string;
   company_name: string;
   fiscal_year: number;
   section: string;

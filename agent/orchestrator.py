@@ -279,21 +279,33 @@ INSTRUCTIONS FOR THIS RESPONSE:
 
         # Extract cited GCS URIs or filenames directly from the model narrative
         cited_gcs_uris = set(re.findall(r'gs://[^\s\)\>\]\*\,\"\']+', narrative))
-        cited_filenames = set(re.findall(r'\b[A-Z0-9]+_\d{4}_Item[0-9A-Z_]+(?:\.md)?\b', narrative))
+        cited_filenames = set(re.findall(r'\b[A-Z0-9]+_\d{4}_Item[0-9A-Z_]+(?:\.md)?\b', narrative, re.IGNORECASE))
 
         # Filter chunks to ONLY those explicitly cited/referenced by the agent model response
         cited_chunks = []
         seen_cited_gcs = set()
-        if cited_gcs_uris or cited_filenames:
-            for chunk in unique_chunks:
-                g_uri = chunk.get("gcs_uri", "")
-                filename = os.path.basename(g_uri)
-                if g_uri in cited_gcs_uris or filename in cited_filenames or any(fn in g_uri for fn in cited_filenames):
-                    if g_uri not in seen_cited_gcs:
-                        seen_cited_gcs.add(g_uri)
-                        cited_chunks.append(chunk)
 
-        # Fallback: If model narrative did not print explicit gs:// links, filter candidate hits by prompt ticker & requested year(s)
+        for chunk in unique_chunks:
+            g_uri = chunk.get("gcs_uri", "")
+            filename = os.path.basename(g_uri)
+            tk = (chunk.get("ticker") or "").upper()
+            yr = str(chunk.get("fiscal_year") or "")
+            sec = (chunk.get("section") or "").lower()
+
+            is_cited = False
+            if g_uri in cited_gcs_uris or filename in cited_filenames or any(fn in g_uri for fn in cited_filenames):
+                is_cited = True
+            elif tk and yr and tk in narrative.upper() and yr in narrative:
+                if ("item 1a" in sec or "risk" in sec) and ("Item 1A" in narrative or "Risk" in narrative or "item1a" in narrative.lower()):
+                    is_cited = True
+                elif ("item 7" in sec or "mda" in sec or "md&a" in sec) and ("Item 7" in narrative or "MD&A" in narrative or "item7" in narrative.lower()):
+                    is_cited = True
+
+            if is_cited and g_uri not in seen_cited_gcs:
+                seen_cited_gcs.add(g_uri)
+                cited_chunks.append(chunk)
+
+        # Fallback: If model narrative did not print explicit links, filter candidate hits by prompt ticker & requested year(s)
         if not cited_chunks and unique_chunks:
             prompt_years = [int(y) for y in re.findall(r'\b(202[0-9])\b', user_prompt)]
             prompt_tickers = [c.get("ticker") for c in unique_chunks if c.get("ticker") and c.get("ticker") in user_prompt.upper()]

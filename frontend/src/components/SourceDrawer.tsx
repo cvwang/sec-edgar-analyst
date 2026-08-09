@@ -1,11 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Database, FileText, ExternalLink, BookmarkCheck, CheckCircle2, ChevronDown, ChevronUp, PanelRightClose } from 'lucide-react';
-import { AnalysisResponse } from '../types';
+import { Database, FileText, ExternalLink, BookmarkCheck, CheckCircle2, ChevronDown, ChevronUp, PanelRightClose, Target } from 'lucide-react';
+import { AnalysisResponse, ActiveSourceQuery } from '../types';
 
 interface SourceDrawerProps {
   lastResponse: AnalysisResponse | null;
-  activeSourceQuery?: string | null;
+  activeSourceQuery?: ActiveSourceQuery | null;
   onToggleCollapse?: () => void;
+}
+
+function computeMarkScore(markText: string, rawQuery: string): number {
+  if (!markText || !rawQuery) return 0;
+
+  const mLower = markText.toLowerCase().trim();
+  const qLower = rawQuery.toLowerCase().trim();
+
+  // 1. Direct inclusion check
+  if (qLower.includes(mLower) || mLower.includes(qLower)) {
+    return 100;
+  }
+
+  const stopWords = new Set([
+    'the', 'and', 'for', 'that', 'this', 'with', 'from', 'were', 'was', 'have',
+    'has', 'had', 'been', 'than', 'more', 'less', 'over', 'into', 'also', 'source',
+    'item', 'mda', 'md&a', 'filing', '10-k', '10k', 'form', 'page', 'part'
+  ]);
+
+  const extractTokens = (text: string) =>
+    text
+      .replace(/[^\w\s%]/g, ' ')
+      .split(/\s+/)
+      .map((t) => t.toLowerCase().trim())
+      .filter((t) => t.length >= 2 && !stopWords.has(t));
+
+  const markTokens = extractTokens(mLower);
+  const queryTokens = extractTokens(qLower);
+
+  if (markTokens.length === 0 || queryTokens.length === 0) return 0;
+
+  const queryTokenSet = new Set(queryTokens);
+  let score = 0;
+
+  for (const token of markTokens) {
+    if (queryTokenSet.has(token)) {
+      if (
+        /\d+/.test(token) ||
+        /%/.test(token) ||
+        ['services', 'iphone', 'mac', 'ipad', 'wearables', 'revenue', 'sales', 'operating', 'income', 'net', 'decreased', 'increased', 'growth'].includes(token)
+      ) {
+        score += 5;
+      } else {
+        score += 2;
+      }
+    }
+  }
+
+  return score;
 }
 
 export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, activeSourceQuery, onToggleCollapse }) => {
@@ -46,10 +95,11 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
   // Auto-scroll and highlight when a source citation badge is clicked in chat stream
   useEffect(() => {
-    if (!activeSourceQuery || consolidatedChunks.length === 0) return;
+    const rawQuery = activeSourceQuery?.query;
+    if (!rawQuery || consolidatedChunks.length === 0) return;
 
-    const queryLower = activeSourceQuery.toLowerCase().trim();
-    const queryParts = activeSourceQuery.split('|||').map((p) => p.toLowerCase().trim());
+    const queryLower = rawQuery.toLowerCase().trim();
+    const queryParts = rawQuery.split('|||').map((p) => p.toLowerCase().trim());
 
     // 1. Stage 1: Match by GCS URI or exact filename
     let matchIdx = consolidatedChunks.findIndex((chunk) => {
@@ -116,44 +166,95 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
       setExpandedChunks((prev) => ({ ...prev, [matchIdx]: true }));
       setHighlightedIdx(matchIdx);
 
-      const el = cardRefs.current[matchIdx];
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Scroll inside card container to the highlighted <mark> element if rendered
-        setTimeout(() => {
-          const markEl = el.querySelector('mark');
-          if (markEl) {
-            markEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 150);
-      }
+      const targetIdx = matchIdx;
+      const scrollAndPulseMark = () => {
+        const el = cardRefs.current[targetIdx];
+        if (!el) return;
 
-      const timer = setTimeout(() => {
+        // 1. Scroll container to source card
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // 2. Locate target <mark> element by explicit citeId if present, or fallback to computeMarkScore
+        const markEls = el.querySelectorAll('mark');
+        if (markEls && markEls.length > 0) {
+          let bestMark: HTMLElement | null = null;
+
+          const targetCiteId = activeSourceQuery?.citeId;
+          if (targetCiteId) {
+            const directMatch =
+              el.querySelector(`[data-cite-id="${targetCiteId}"]`) ||
+              el.querySelector(`#${targetCiteId}`);
+            if (directMatch) {
+              bestMark = directMatch as HTMLElement;
+            }
+          }
+
+          if (!bestMark) {
+            let highestScore = -1;
+            markEls.forEach((markNode) => {
+              const mText = markNode.textContent || '';
+              const score = computeMarkScore(mText, rawQuery);
+              if (score > highestScore) {
+                highestScore = score;
+                bestMark = markNode as HTMLElement;
+              }
+            });
+          }
+
+          if (!bestMark) {
+            bestMark = markEls[0] as HTMLElement;
+          }
+
+          bestMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          markEls.forEach((m) => m.classList.remove('citation-mark-pulse'));
+          // Force DOM reflow to restart CSS keyframe animation on consecutive clicks
+          void bestMark.offsetWidth;
+          bestMark.classList.add('citation-mark-pulse');
+        }
+      };
+
+      requestAnimationFrame(scrollAndPulseMark);
+      const timerId = setTimeout(scrollAndPulseMark, 120);
+
+      const clearTimer = setTimeout(() => {
         setHighlightedIdx(null);
-      }, 3500);
-      return () => clearTimeout(timer);
+      }, 5000);
+
+      return () => {
+        clearTimeout(timerId);
+        clearTimeout(clearTimer);
+      };
     }
-  }, [activeSourceQuery, consolidatedChunks]);
+  }, [activeSourceQuery?.timestamp, activeSourceQuery, consolidatedChunks]);
 
   const toggleExpand = (idx: number) => {
     setExpandedChunks((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const renderHighlightedText = (text: string) => {
+  const renderHighlightedText = (text: string, isHighlighted: boolean) => {
     if (!text) return null;
 
-    // Safely parse LLM-annotated <mark>...</mark> sentence blocks
-    const parts = text.split(/(<mark>.*?<\/mark>)/gs);
+    // Safely parse LLM-annotated <mark ...>...</mark> sentence blocks preserving id and data-cite-id
+    const parts = text.split(/(<mark[^>]*>.*?<\/mark>)/gs);
 
     return (
       <span>
         {parts.map((part, i) => {
-          if (part.startsWith('<mark>') && part.endsWith('</mark>')) {
-            const innerText = part.substring(6, part.length - 7);
+          if (part.startsWith('<mark') && part.endsWith('</mark>')) {
+            const openTagEnd = part.indexOf('>');
+            const openTag = part.substring(0, openTagEnd + 1);
+            const innerText = part.substring(openTagEnd + 1, part.length - 7);
+
+            const idMatch = openTag.match(/id=["']?(c\d+)["']?/i) || openTag.match(/data-cite-id=["']?(c\d+)["']?/i);
+            const citeId = idMatch ? idMatch[1].toLowerCase() : '';
+
             return (
               <mark
                 key={i}
-                className="bg-amber-100 text-amber-900 px-1 py-0.5 rounded border border-amber-300 font-semibold inline-block my-0.5"
+                id={citeId || undefined}
+                data-cite-id={citeId || undefined}
+                className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-semibold inline-block my-0.5 transition-all duration-300"
               >
                 {innerText}
               </mark>
@@ -213,6 +314,11 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                     {chunk.company_name} FY{chunk.fiscal_year} 10-K
                   </span>
                   <div className="flex items-center gap-1.5">
+                    {isHighlighted && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A73E8] text-white shadow-xs flex items-center gap-1 animate-pulse">
+                        <Target className="w-2.5 h-2.5 text-white" /> Target
+                      </span>
+                    )}
                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                       <CheckCircle2 className="w-2.5 h-2.5 text-[#34A853]" /> Cited
                     </span>
@@ -237,7 +343,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
                     </button>
                   </div>
                   <div className="italic whitespace-pre-line leading-relaxed text-gray-700">
-                    "{renderHighlightedText(textToDisplay)}"
+                    "{renderHighlightedText(textToDisplay, isHighlighted)}"
                   </div>
                 </div>
 
@@ -271,3 +377,4 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     </aside>
   );
 };
+

@@ -90,7 +90,9 @@ def test_annotate_text_with_clauses():
     clauses = ["Automotive gross margin was 18.2%."]
 
     annotated = annotate_text_with_clauses(content, clauses)
-    assert "<mark>Automotive gross margin was 18.2%.</mark>" in annotated
+    assert "Automotive gross margin was 18.2%." in annotated
+    assert "<mark" in annotated
+    assert "</mark>" in annotated
 
 
 def test_extract_relevant_excerpt():
@@ -110,14 +112,14 @@ def test_sec_document_chunk_model():
         fiscal_year=2023,
         section="Item 1A - Risk Factors",
         content="Automotive production risks.",
-        highlight_excerpt="<mark>Automotive production risks.</mark>",
+        highlight_excerpt="<mark id=\"c1\" data-cite-id=\"c1\">Automotive production risks.</mark>",
         citation="Vertex AI Search (sec-10k-filings-datastore) [gs://sec-analyst-sec-reports/filings/TSLA_2023_Item1A_Risk.md]",
         gcs_uri="gs://sec-analyst-sec-reports/filings/TSLA_2023_Item1A_Risk.md",
     )
     dumped = chunk.model_dump()
     assert dumped["ticker"] == "TSLA"
     assert dumped["fiscal_year"] == 2023
-    assert "<mark>" in dumped["highlight_excerpt"]
+    assert "<mark" in dumped["highlight_excerpt"]
     assert "Vertex AI Search" in dumped["citation"]
 
 
@@ -141,7 +143,8 @@ def test_annotate_grounded_highlights_guaranteed_fallback():
     assert len(result) == 1
     annotated_chunk = result[0]
 
-    assert "<mark>" in annotated_chunk["content"]
+    assert "<mark" in annotated_chunk["content"]
     assert "</mark>" in annotated_chunk["content"]
-    assert "<mark>" in annotated_chunk["highlight_excerpt"]
+    assert "<mark" in annotated_chunk["highlight_excerpt"]
     assert "</mark>" in annotated_chunk["highlight_excerpt"]
+

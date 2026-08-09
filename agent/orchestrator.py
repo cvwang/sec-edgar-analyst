@@ -318,9 +318,50 @@ INSTRUCTIONS FOR THIS RESPONSE:
                     seen_cited_gcs.add(g_uri)
                     cited_chunks.append(chunk)
 
+        # Extract narrative claims / bullet sentences and tag inline citations with c1, c2, c3 citation keys
+        claims_with_ids = []
+        if narrative:
+            lines = narrative.split("\n")
+            cite_counter = 1
+            tagged_lines = []
+
+            for line in lines:
+                line_str = line.strip()
+                if not line_str:
+                    tagged_lines.append(line)
+                    continue
+
+                if re.search(r'\(Source|\bgs://|\b10-K\b', line_str, re.IGNORECASE):
+                    cid = f"c{cite_counter}"
+                    cite_counter += 1
+
+                    claim_clean = re.sub(r'[\(\[\{]?(?:Source|gs://)[^\)\}\]]*[\)\}\]]?', '', line_str, flags=re.IGNORECASE).strip()
+                    claim_clean = re.sub(r'^[\*\-\•\d\.\s]+', '', claim_clean).strip()
+                    if claim_clean:
+                        claims_with_ids.append((claim_clean, cid))
+
+                    def _inject_cid(match):
+                        matched_str = match.group(0)
+                        if f"cite: {cid}" in matched_str:
+                            return matched_str
+                        inner = matched_str.rstrip(")]")
+                        return f"{inner} | cite: {cid})"
+
+                    line_tagged = re.sub(r'\((?:Source|gs://)[^\)]+\)', _inject_cid, line_str, flags=re.IGNORECASE)
+                    if line_tagged == line_str and "Source" in line_str:
+                        line_tagged = line_str + f" (cite: {cid})"
+
+                    tagged_lines.append(line_tagged)
+                else:
+                    tagged_lines.append(line)
+
+            if claims_with_ids:
+                narrative = "\n".join(tagged_lines)
+
         grounded_chunks = consolidate_grounded_chunks(cited_chunks if cited_chunks else unique_chunks)
         if narrative and grounded_chunks:
-            grounded_chunks = annotate_grounded_highlights_with_llm(grounded_chunks, narrative)
+            grounded_chunks = annotate_grounded_highlights_with_llm(grounded_chunks, narrative, claims_with_ids=claims_with_ids)
+
 
         citations = [c["citation"] for c in grounded_chunks if c.get("citation")]
 

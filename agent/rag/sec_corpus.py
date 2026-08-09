@@ -34,35 +34,47 @@ def add_grounded_chunks(chunks: List[dict]):
     _request_grounded_chunks.extend(chunks)
 
 
-def annotate_text_with_clauses(content: str, marked_clauses: list) -> str:
-    """Wraps exact or matching sentence blocks in <mark> tags inside content."""
-    if not content or not marked_clauses:
+def annotate_text_with_clauses(content: str, marked_items: list) -> str:
+    """Wraps exact or matching sentence blocks in <mark id="c1" data-cite-id="c1"> tags inside content."""
+    if not content or not marked_items:
         return content
 
     annotated = content
-    for clause in marked_clauses:
-        clause_clean = clause.strip()
+    for idx, item in enumerate(marked_items):
+        if isinstance(item, tuple):
+            clause_clean, cite_id = item[0], item[1]
+        elif isinstance(item, dict):
+            clause_clean = item.get("text", "")
+            cite_id = item.get("id", f"c{idx+1}")
+        else:
+            clause_clean = str(item).strip()
+            cite_id = f"c{idx+1}"
+
+        clause_clean = clause_clean.strip()
         if not clause_clean or len(clause_clean) < 8:
             continue
 
-        if f"<mark>{clause_clean}</mark>" in annotated:
+        mark_tag = f'<mark id="{cite_id}" data-cite-id="{cite_id}">{clause_clean}</mark>'
+
+        if mark_tag in annotated:
             continue
 
         if clause_clean in annotated:
-            annotated = annotated.replace(clause_clean, f"<mark>{clause_clean}</mark>")
+            annotated = annotated.replace(clause_clean, mark_tag, 1)
             continue
 
         # Try sentence-level matching if Gemini modified minor words or capitalization
         sentences = re.split(r'(?<=[.!?])\s+', annotated)
         for s in sentences:
             s_clean = s.strip()
-            if not s_clean or len(s_clean) < 15 or "<mark>" in s:
+            if not s_clean or len(s_clean) < 15 or "<mark" in s:
                 continue
 
             words = [w for w in re.findall(r'\b[A-Za-z0-9\$\.]+\b', clause_clean) if len(w) > 3]
             match_count = sum(1 for w in words if w in s_clean)
             if words and (match_count / len(words)) >= 0.5:
-                annotated = annotated.replace(s_clean, f"<mark>{s_clean}</mark>")
+                s_mark_tag = f'<mark id="{cite_id}" data-cite-id="{cite_id}">{s_clean}</mark>'
+                annotated = annotated.replace(s_clean, s_mark_tag, 1)
                 break
 
     return annotated
@@ -73,12 +85,12 @@ def fallback_sentence_highlight(content: str, narrative: str) -> str:
     if not content:
         return content
 
-    if "<mark>" in content:
+    if "<mark" in content:
         return content
 
     sentences = re.split(r'(?<=[.!?])\s+', content)
     if not sentences:
-        return f"<mark>{content[:300]}</mark>"
+        return f'<mark id="c1" data-cite-id="c1">{content[:300]}</mark>'
 
     stop_words = {"this", "that", "with", "from", "were", "have", "been", "which", "their", "there", "about", "other", "under", "will", "would", "could", "should"}
     narrative_words = set(
@@ -100,15 +112,15 @@ def fallback_sentence_highlight(content: str, narrative: str) -> str:
             best_sentence = s_clean
 
     if best_sentence and best_sentence in content:
-        return content.replace(best_sentence, f"<mark>{best_sentence}</mark>")
+        return content.replace(best_sentence, f'<mark id="c1" data-cite-id="c1">{best_sentence}</mark>')
 
     # Fallback to the first non-trivial sentence
     for s in sentences:
         s_clean = s.strip()
         if len(s_clean) >= 20 and s_clean in content:
-            return content.replace(s_clean, f"<mark>{s_clean}</mark>")
+            return content.replace(s_clean, f'<mark id="c1" data-cite-id="c1">{s_clean}</mark>')
 
-    return f"<mark>{content[:300]}</mark>"
+    return f'<mark id="c1" data-cite-id="c1">{content[:300]}</mark>'
 
 
 def derive_highlight_excerpt_from_content(content: str) -> str:
@@ -116,10 +128,10 @@ def derive_highlight_excerpt_from_content(content: str) -> str:
     if not content:
         return ""
 
-    if "<mark>" not in content:
+    if "<mark" not in content:
         return content[:350]
 
-    mark_idx = content.find("<mark>")
+    mark_idx = content.find("<mark")
     end_mark_idx = content.find("</mark>", mark_idx)
     if end_mark_idx == -1:
         end_mark_idx = mark_idx + 100
@@ -138,8 +150,8 @@ def derive_highlight_excerpt_from_content(content: str) -> str:
     return excerpt
 
 
-def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str) -> List[dict]:
-    """Uses Vertex AI (Gemini Flash) in parallel to identify exact supporting sentence blocks and wrap them in <mark> tags."""
+def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str, claims_with_ids: Optional[List[tuple]] = None) -> List[dict]:
+    """Uses Vertex AI (Gemini Flash) in parallel to identify exact supporting sentence blocks with explicit citation IDs (c1, c2, c3)."""
     if not chunks or not narrative:
         return chunks
 
@@ -152,24 +164,34 @@ def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str) ->
         client = genai.Client()
         fast_model = getattr(settings, "fast_model", "gemini-2.5-flash")
 
+        # Format claims with citation IDs if provided
+        claims_prompt = ""
+        if claims_with_ids:
+            claims_lines = [f"[{cid}]: {claim}" for claim, cid in claims_with_ids[:8]]
+            claims_prompt = "\n".join(claims_lines)
+        else:
+            claims_prompt = narrative[:1500]
+
         def _annotate_single_chunk(chunk: dict) -> dict:
             raw_text = chunk.get("content", "")
             if not raw_text:
                 return chunk
 
-            prompt = f"""You are an SEC filing grounding specialist. Given the SEC 10-K filing excerpt and the AI Analyst Narrative below, identify 1 to 3 exact verbatim sentence blocks or key clauses directly from the SEC 10-K filing excerpt that directly ground or substantiate the claims in the narrative.
+            prompt = f"""You are an SEC filing grounding specialist. Given the SEC 10-K filing excerpt and the Analyst Narrative claims below, identify the exact verbatim sentence block or key clause directly from the SEC 10-K filing excerpt that directly grounds EACH claim.
 
 CRITICAL INSTRUCTIONS:
 1. Extract ONLY verbatim sentence blocks or clauses directly present in the SEC 10-K FILING EXCERPT below.
-2. Return each verbatim sentence block or clause enclosed inside <mark> and </mark> tags.
-3. Do NOT rephrase, summarize, translate, or alter any words from the original filing excerpt text.
-4. Output ONLY the <mark>quote</mark> blocks, separated by newlines.
+2. Return each verbatim sentence block enclosed inside <mark id="c1">quote</mark>, <mark id="c2">quote</mark>, etc., matching the claim ID [c1], [c2]...
+3. Do NOT rephrase, summarize, translate, or alter any words from the original filing text.
+4. Output format (one per line):
+   <mark id="c1">Verbatim filing quote grounding claim c1</mark>
+   <mark id="c2">Verbatim filing quote grounding claim c2</mark>
 
 SEC 10-K FILING EXCERPT:
 {raw_text[:3000]}
 
-ANALYST NARRATIVE:
-{narrative[:1500]}
+ANALYST CLAIMS & CITATION IDS:
+{claims_prompt}
 """
 
             try:
@@ -180,9 +202,16 @@ ANALYST NARRATIVE:
 
                 if response and response.text:
                     annotated = response.text.strip()
-                    marked_clauses = re.findall(r'<mark>(.*?)</mark>', annotated, flags=re.DOTALL)
-                    if marked_clauses:
-                        chunk["content"] = annotate_text_with_clauses(chunk["content"], marked_clauses)
+                    # Parse <mark id="c1">quote</mark> or <mark>quote</mark>
+                    parsed_items = []
+                    for match in re.finditer(r'<mark(?:\s+id=["\']?(c\d+)["\']?)?\s*>(.*?)</mark>', annotated, flags=re.DOTALL):
+                        cid = match.group(1) or "c1"
+                        qtext = match.group(2).strip()
+                        if qtext:
+                            parsed_items.append((qtext, cid))
+
+                    if parsed_items:
+                        chunk["content"] = annotate_text_with_clauses(chunk["content"], parsed_items)
             except Exception as e:
                 logging.warning(f"Single chunk annotation error: {e}")
 

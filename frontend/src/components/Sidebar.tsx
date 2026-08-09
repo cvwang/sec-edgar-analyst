@@ -170,7 +170,7 @@ export function Sidebar({
                     : 'border-transparent text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'
                 }`}
               >
-                <div className="flex-1 min-w-0 pr-2">
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <input
                       type="text"
@@ -184,21 +184,17 @@ export function Sidebar({
                     />
                   ) : (
                     <>
-                      <div className="truncate font-medium flex items-center justify-between gap-1">
-                        <span className="truncate">{session.title || 'Untitled Session'}</span>
+                      <div className="truncate font-medium text-gray-900">
+                        {session.title || 'Untitled Session'}
                       </div>
-                      <div className="flex items-center justify-between gap-2 mt-1 text-[10px] text-gray-500 group-hover:text-gray-600">
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500 group-hover:text-gray-600">
                         <span>{formatRelativeTime(session.updated_at)}</span>
-                        {runningSessionIds[session.session_id] ? (
+                        {runningSessionIds[session.session_id] && (
                           <span className="bg-blue-100 text-[#1A73E8] border border-blue-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1 animate-pulse">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#1A73E8] animate-ping" />
                             Running
                           </span>
-                        ) : session.turn_count > 0 ? (
-                          <span className="bg-gray-200/80 px-1.5 py-0.5 rounded text-gray-600 font-mono">
-                            {session.turn_count} turns
-                          </span>
-                        ) : null}
+                        )}
                       </div>
                     </>
                   )}
@@ -206,7 +202,7 @@ export function Sidebar({
 
                 {/* Actions (visible on hover or active) */}
                 {!isEditing && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     {confirmDeleteId === session.session_id ? (
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button

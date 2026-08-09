@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { PanelRightOpen, Database } from 'lucide-react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -30,6 +30,11 @@ export function App() {
 
   // Optimistic pending user messages per session ID
   const [pendingUserMessages, setPendingUserMessages] = useState<Record<string, ChatMessage[]>>({});
+  const pendingUserMessagesRef = useRef<Record<string, ChatMessage[]>>({});
+
+  useEffect(() => {
+    pendingUserMessagesRef.current = pendingUserMessages;
+  }, [pendingUserMessages]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [inputPrompt, setInputPrompt] = useState('');
@@ -161,7 +166,13 @@ export function App() {
 
       const consolidated = aggregateThreadResponse(detail.turns, detail.last_response);
 
-      const combined = [WELCOME_MESSAGE, ...loadedMsgs];
+      // Preserve any pending optimistic user queries for this session that are still executing in background
+      const pendingForSession = pendingUserMessagesRef.current[sessionId] || [];
+      const pendingFiltered = pendingForSession.filter(
+        (pMsg) => !loadedMsgs.some((lMsg) => lMsg.sender === 'user' && lMsg.text === pMsg.text)
+      );
+
+      const combined = [WELCOME_MESSAGE, ...loadedMsgs, ...pendingFiltered];
       setMessages(combined);
       setLastResponse(consolidated);
     } catch (err) {
@@ -251,6 +262,7 @@ export function App() {
       if (res.ok) {
         setSessions([]);
         setPendingUserMessages({});
+        pendingUserMessagesRef.current = {};
         await handleCreateNewSession();
       }
     } catch (err) {
@@ -317,10 +329,14 @@ export function App() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setPendingUserMessages((prev) => ({
-      ...prev,
-      [targetSessionId]: [...(prev[targetSessionId] || []), userMsg],
-    }));
+    setPendingUserMessages((prev) => {
+      const next = {
+        ...prev,
+        [targetSessionId]: [...(prev[targetSessionId] || []), userMsg],
+      };
+      pendingUserMessagesRef.current = next;
+      return next;
+    });
 
     if (targetSessionId === activeSessionId) {
       setMessages((prev) => [...prev, userMsg]);
@@ -345,14 +361,26 @@ export function App() {
         data,
       };
 
-      setPendingUserMessages((prev) => ({
-        ...prev,
-        [targetSessionId]: [],
-      }));
+      setPendingUserMessages((prev) => {
+        const next = {
+          ...prev,
+          [targetSessionId]: [],
+        };
+        pendingUserMessagesRef.current = next;
+        return next;
+      });
 
       setActiveSessionId((currentActiveId) => {
         if (currentActiveId === targetSessionId) {
-          setMessages((prev) => [...prev, agentMsg]);
+          setMessages((prev) => {
+            const hasUserMsg = prev.some(
+              (m) => m.id === userMsg.id || (m.sender === 'user' && m.text === userText)
+            );
+            if (!hasUserMsg) {
+              return [...prev, userMsg, agentMsg];
+            }
+            return [...prev, agentMsg];
+          });
           setLastResponse((prevResp) => aggregateThreadResponse(undefined, data, prevResp));
         }
         return currentActiveId;
@@ -367,14 +395,26 @@ export function App() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setPendingUserMessages((prev) => ({
-        ...prev,
-        [targetSessionId]: [],
-      }));
+      setPendingUserMessages((prev) => {
+        const next = {
+          ...prev,
+          [targetSessionId]: [],
+        };
+        pendingUserMessagesRef.current = next;
+        return next;
+      });
 
       setActiveSessionId((currentActiveId) => {
         if (currentActiveId === targetSessionId) {
-          setMessages((prev) => [...prev, errorMsg]);
+          setMessages((prev) => {
+            const hasUserMsg = prev.some(
+              (m) => m.id === userMsg.id || (m.sender === 'user' && m.text === userText)
+            );
+            if (!hasUserMsg) {
+              return [...prev, userMsg, errorMsg];
+            }
+            return [...prev, errorMsg];
+          });
         }
         return currentActiveId;
       });

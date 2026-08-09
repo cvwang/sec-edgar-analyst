@@ -88,6 +88,10 @@ marked.use({
 });
 
 function formatSourceBadgeHtml(rawText: string): string {
+  // Extract explicit citation ID if present (e.g. cite: c1 or c1)
+  const citeIdMatch = rawText.match(/\bcite:\s*(c\d+)\b/i) || rawText.match(/\b(c\d+)\b/i);
+  const citeId = citeIdMatch ? citeIdMatch[1].toLowerCase() : '';
+
   const gsMatch = rawText.match(/gs:\/\/[^\s\n\)\<\>"]+/i);
   const gcsUri = gsMatch ? gsMatch[0].replace(/[\)\.,;]+$/, '') : '';
   const filename = gcsUri ? gcsUri.split('/').pop() || '' : '';
@@ -141,9 +145,9 @@ function formatSourceBadgeHtml(rawText: string): string {
   }
 
   const labelText = labelParts.length > 0 ? labelParts.join(' • ') : 'SEC 10-K Filing';
-  const queryAttr = [gcsUri, ticker, year, section, rawText].filter(Boolean).join('|||').replace(/"/g, '&quot;');
+  const queryAttr = [gcsUri, ticker, year, section, citeId, rawText].filter(Boolean).join('|||').replace(/"/g, '&quot;');
 
-  return `<button data-source-query="${queryAttr}" class="source-citation-badge hover:scale-105 active:scale-95 cursor-pointer" title="Click to highlight grounded SEC source section">📌 ${labelText}</button>`;
+  return `<button data-cite-id="${citeId}" data-source-query="${queryAttr}" class="source-citation-badge hover:scale-105 active:scale-95 cursor-pointer" title="Click to highlight grounded SEC source section">📌 ${labelText}</button>`;
 }
 
 export const ChatStream: React.FC<ChatStreamProps> = ({
@@ -180,9 +184,20 @@ export const ChatStream: React.FC<ChatStreamProps> = ({
     const badge = target.closest('.source-citation-badge') as HTMLElement;
     if (badge) {
       e.stopPropagation();
-      const query = badge.getAttribute('data-source-query') || badge.innerText;
-      if (query) {
-        onSelectSourceQuery?.(query);
+      const citeId = badge.getAttribute('data-cite-id') || '';
+      let query = badge.getAttribute('data-source-query') || badge.innerText;
+
+      // Extract surrounding container narrative text (li, p, tr, etc.) to enable 1:1 grounded sentence matching
+      const container = badge.closest('.markdown-content li, .markdown-content p, .markdown-content tr') as HTMLElement;
+      if (container) {
+        const containerText = container.innerText.replace(badge.innerText, '').trim();
+        if (containerText) {
+          query = `${query}|||${containerText}`;
+        }
+      }
+
+      if (query || citeId) {
+        onSelectSourceQuery?.({ query, citeId, timestamp: Date.now() } as any);
       }
       return;
     }

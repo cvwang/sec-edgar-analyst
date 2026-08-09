@@ -59,3 +59,11 @@ export interface SessionDetail {
   last_response?: AnalysisResponse | null;
 }
 
+export interface ActiveSourceQuery {
+  query: string;
+  timestamp: number;
+  citeId?: string;
+}
+
+
+

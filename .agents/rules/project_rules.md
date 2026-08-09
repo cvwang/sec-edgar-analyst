@@ -35,4 +35,6 @@ Note: Engineering standards defined in [.agents/rules/project_engineering_standa
 
 ## Git & Version Control
 - **No Automatic Commits**: Code updates must never be committed automatically. Only commit changes when explicitly asked by the user.
+- **Multi-Agent Worktree Isolation**: When handling a prompt while another agent thread is active, create a dedicated Git worktree (`git worktree add -b <branch> <path> main`) for task isolation. See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
+
 

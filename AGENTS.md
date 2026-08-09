@@ -20,3 +20,5 @@ All requirements, specifications, and scope decisions MUST be evaluated against:
 5. **Secrets**: Use `.env` or environment configuration; never hardcode credentials.
 6. **Git Commits**: Never commit code updates automatically. Only commit changes when explicitly instructed by the user.
 7. **Zero Hardcoding/Fallbacks**: Never hardcode ticker symbols, company maps, or fallback ticker defaults in orchestrators, tools, or frontend UI components. All company tickers must be dynamically resolved from SEC corpus metadata, BigQuery tool outputs, or explicit LLM payload parameters.
+8. **Multi-Agent Worktree Isolation**: If a prompt is received while another agent thread is actively running in the main repo, a dedicated git worktree (`git worktree add -b ...`) must be created for the new prompt to avoid work overlaps and file conflict issues. See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
+

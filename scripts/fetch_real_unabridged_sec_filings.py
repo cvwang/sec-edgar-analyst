@@ -37,20 +37,168 @@ def sec_http_get(url: str) -> bytes:
         return resp.read()
 
 
+from html.parser import HTMLParser
+
+
+class SEC10KHTMLToMarkdownParser(HTMLParser):
+    """Parses SEC EDGAR HTML into clean Markdown with true GitHub-Flavored Markdown tables and block line breaks."""
+
+    def __init__(self):
+        super().__init__()
+        self.output = []
+        self.in_table = False
+        self.current_table = []
+        self.current_row = []
+        self.current_cell = []
+        self.in_script_or_style = False
+        self.skip_tags = {"script", "style"}
+        self.block_tags = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "li", "blockquote", "hr"}
+
+    def handle_starttag(self, tag, attrs):
+        tag_lower = tag.lower()
+        if tag_lower in self.skip_tags:
+            self.in_script_or_style = True
+            return
+
+        if tag_lower == "table":
+            self.in_table = True
+            self.current_table = []
+        elif tag_lower == "tr" and self.in_table:
+            self.current_row = []
+        elif tag_lower in ("td", "th") and self.in_table:
+            self.current_cell = []
+        elif tag_lower == "br":
+            if not self.in_table:
+                self.output.append("\n")
+        elif tag_lower in ("p", "div", "h1", "h2", "h3", "h4", "h5", "h6"):
+            if not self.in_table:
+                self.output.append("\n\n")
+
+    def handle_endtag(self, tag):
+        tag_lower = tag.lower()
+        if tag_lower in self.skip_tags:
+            self.in_script_or_style = False
+            return
+
+        if tag_lower in ("td", "th") and self.in_table:
+            cell_text = "".join(self.current_cell).strip()
+            cell_text = re.sub(r"\s+", " ", cell_text)
+            self.current_row.append(cell_text)
+            self.current_cell = []
+        elif tag_lower == "tr" and self.in_table:
+            if any(c for c in self.current_row):
+                self.current_table.append(self.current_row)
+            self.current_row = []
+        elif tag_lower == "table" and self.in_table:
+            self.in_table = False
+            md_table = self._render_table_to_markdown(self.current_table)
+            if md_table:
+                self.output.append(f"\n\n{md_table}\n\n")
+            self.current_table = []
+        elif tag_lower in self.block_tags and not self.in_table:
+            self.output.append("\n\n")
+
+    def handle_data(self, data):
+        if self.in_script_or_style:
+            return
+        text = data.replace("\xa0", " ").replace("&nbsp;", " ")
+        if self.in_table:
+            self.current_cell.append(text)
+        else:
+            self.output.append(text)
+
+    def _render_table_to_markdown(self, rows: list) -> str:
+        if not rows:
+            return ""
+
+        cleaned_rows = []
+        for r in rows:
+            non_empty = [c for c in r if c]
+            if not non_empty:
+                continue
+
+            merged_row = []
+            i = 0
+            while i < len(r):
+                cell = r[i].strip()
+                if cell in ("$", "€", "¥", "£") and i + 1 < len(r):
+                    next_idx = i + 1
+                    while next_idx < len(r) and not r[next_idx].strip():
+                        next_idx += 1
+                    if next_idx < len(r):
+                        cell = f"{cell}{r[next_idx].strip()}"
+                        i = next_idx
+                elif cell and i + 1 < len(r):
+                    next_cell = r[i + 1].strip()
+                    if next_cell in ("%", "%)", "(%)"):
+                        cell = f"{cell}{next_cell}"
+                        i += 1
+                merged_row.append(cell)
+                i += 1
+
+            non_empty_cells = [c.replace("|", "\\|") for c in merged_row if c.strip()]
+            if non_empty_cells:
+                cleaned_rows.append(non_empty_cells)
+
+        if not cleaned_rows:
+            return ""
+
+        max_cols = max(len(r) for r in cleaned_rows)
+        if max_cols == 0:
+            return ""
+
+        padded_rows = []
+        for r in cleaned_rows:
+            if len(r) < max_cols:
+                clean_num = r[0].replace("%","").replace("$","").replace("(","").replace(")","").replace("-","").strip()
+                if clean_num.isdigit():
+                    padded_rows.append([""] * (max_cols - len(r)) + r)
+                else:
+                    padded_rows.append(r + [""] * (max_cols - len(r)))
+            else:
+                padded_rows.append(r)
+
+        header_row = padded_rows[0]
+        markdown_lines = []
+        markdown_lines.append("| " + " | ".join(header_row) + " |")
+        markdown_lines.append("| " + " | ".join(["---"] * max_cols) + " |")
+
+        for r in padded_rows[1:]:
+            markdown_lines.append("| " + " | ".join(r) + " |")
+
+        return "\n".join(markdown_lines)
+
+    def get_markdown(self) -> str:
+        raw_md = "".join(self.output)
+        # Decode HTML entities
+        text = (
+            raw_md.replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", '"')
+            .replace("&#39;", "'")
+            .replace("&#8217;", "'")
+            .replace("&#8220;", '"')
+            .replace("&#8221;", '"')
+            .replace("&#8212;", " — ")
+            .replace("&#8211;", " – ")
+            .replace("&#8226;", " • ")
+            .replace("&#8230;", "...")
+        )
+        text = re.sub(r"&\#\d+;", " ", text)
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"\n[ \t]+", "\n", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
+
 def clean_html_to_plain_text(html_content: str) -> str:
-    """Strips HTML tags, script/style elements, decodes entities, and normalizes paragraph formatting."""
-    # Strip script and style blocks
-    text = re.sub(r'<(script|style).*?>.*?</\1>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
-    # Convert breaks and table row ends to paragraph splits
-    text = re.sub(r'</p>|<br\s*/?>|</tr>', '\n\n', text, flags=re.IGNORECASE)
-    # Strip all remaining tags
-    text = re.sub(r'<.*?>', '', text)
-    # Decode HTML entities
-    text = text.replace('&nbsp;', ' ').replace('&#160;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&#8217;', "'").replace('&#8220;', '"').replace('&#8221;', '"')
-    # Clean blank lines
-    lines = [line.strip() for line in text.split('\n')]
-    non_empty = [l for l in lines if l]
-    return '\n\n'.join(non_empty)
+    """Parses SEC EDGAR HTML into clean Markdown with true GitHub-Flavored Markdown tables and block line breaks."""
+    if not html_content:
+        return ""
+    parser = SEC10KHTMLToMarkdownParser()
+    parser.feed(html_content)
+    return parser.get_markdown()
 
 
 def extract_unabridged_section(full_txt: str, start_pattern: str, end_pattern: str) -> str:

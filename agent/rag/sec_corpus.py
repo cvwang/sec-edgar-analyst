@@ -296,11 +296,18 @@ class SECDocumentChunk(BaseModel):
 
 
 def clean_sec_document_text(raw_text: str) -> str:
-    """Strips redundant header preambles, section banners, URLs, and HTML entities while structuring into clean Markdown/HTML."""
+    """Strips redundant header preambles, section banners, URLs, and HTML entities while preserving Markdown formatting & tables."""
     if not raw_text:
         return ""
 
-    text = raw_text
+    # If raw_text contains HTML tags, run SEC10KHTMLToMarkdownParser first
+    if "<table" in raw_text.lower() or "<div" in raw_text.lower() or "<p>" in raw_text.lower():
+        from scripts.fetch_real_unabridged_sec_filings import SEC10KHTMLToMarkdownParser
+        parser = SEC10KHTMLToMarkdownParser()
+        parser.feed(raw_text)
+        text = parser.get_markdown()
+    else:
+        text = raw_text
 
     # 1. Comprehensive HTML entity decoding
     text = re.sub(r'&\#8212;', ' — ', text)
@@ -331,8 +338,16 @@ def clean_sec_document_text(raw_text: str) -> str:
     text = re.sub(r'(?:^|\n|\s)\((?:[a-z]|\d{1,2}|i|ii|iii|iv|v)\)\s+', '\n- ', text)
     text = re.sub(r'(?:^|\n|\s)[•·]\s*', '\n- ', text)
 
-    # 5. Generic paragraph boundary separation (excluding section titles & abbreviations)
-    text = re.sub(r'(?<!\bItem 1A)(?<!\bItem 1B)(?<!\bItem 7)(?<!\bItem 7A)(?<!\bInc)(?<!\bCorp)(?<!\bU\.S)(?<!\bFY\d\d)(?<!\bNo)(?<!\b\d[A-Z])([.!?])\s+([A-Z][a-z]{2,})', r'\1\n\n\2', text)
+    # 5. Generic paragraph boundary separation (excluding Markdown table lines starting with '|')
+    lines = text.split('\n')
+    processed_lines = []
+    for line in lines:
+        if line.strip().startswith('|'):
+            processed_lines.append(line)
+        else:
+            line_clean = re.sub(r'(?<!\bItem 1A)(?<!\bItem 1B)(?<!\bItem 7)(?<!\bItem 7A)(?<!\bInc)(?<!\bCorp)(?<!\bU\.S)(?<!\bFY\d\d)(?<!\bNo)(?<!\b\d[A-Z])([.!?])\s+([A-Z][a-z]{2,})', r'\1\n\n\2', line)
+            processed_lines.append(line_clean)
+    text = '\n'.join(processed_lines)
 
     # 6. Normalize spaces, list formatting, and whitespace spacing
     text = re.sub(r'[ \t]+', ' ', text)

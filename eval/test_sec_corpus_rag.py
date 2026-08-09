@@ -9,6 +9,7 @@ from agent.rag.sec_corpus import (
     SECDocumentChunk,
     SECCorpusStore,
 )
+from scripts.fetch_real_unabridged_sec_filings import SEC10KHTMLToMarkdownParser, clean_html_to_plain_text
 
 
 def test_clean_sec_document_text_html_entity_decoding():
@@ -55,6 +56,34 @@ def test_clean_sec_document_text_bullet_list_formatting():
     assert "- Battery raw material costs." in cleaned
 
 
+def test_html_table_to_markdown_conversion():
+    """Verifies SEC HTML tables convert into aligned GFM Markdown tables with merged currency and percentage symbols."""
+    sample_html = """
+<div>Segment Operating Performance</div>
+<div>The following table shows net sales by reportable segment for 2023, 2022 and 2021 (dollars in millions):</div>
+<table>
+  <tr><th>Net sales by reportable segment:</th><th>2023</th><th>Change</th><th>2022</th><th>Change</th><th>2021</th></tr>
+  <tr><td>Americas</td><td>$</td><td>162,560</td><td>(4)%</td><td>$</td><td>169,658</td><td>11 %</td><td>$</td><td>153,306</td></tr>
+  <tr><td>Europe</td><td>94,294</td><td>(1)%</td><td>95,118</td><td>7 %</td><td>89,307</td></tr>
+  <tr><td>Greater China</td><td>72,559</td><td>(2)%</td><td>74,200</td><td>9 %</td><td>68,366</td></tr>
+  <tr><td>Total net sales</td><td>$</td><td>383,285</td><td>(3)%</td><td>$</td><td>394,328</td><td>8 %</td><td>$</td><td>365,817</td></tr>
+</table>
+"""
+    cleaned = clean_html_to_plain_text(sample_html)
+    assert "Segment Operating Performance\n\nThe following table shows" in cleaned
+    assert "| Net sales by reportable segment: | 2023 | Change | 2022 | Change | 2021 |" in cleaned
+    assert "| Americas | $162,560 | (4)% | $169,658 | 11 % | $153,306 |" in cleaned
+    assert "| Total net sales | $383,285 | (3)% | $394,328 | 8 % | $365,817 |" in cleaned
+
+
+def test_block_header_line_break_preservation():
+    """Verifies block HTML tags create clear line breaks preventing heading run-ons."""
+    sample_html = "<div>Segment Operating Performance</div><div>The following table shows net sales by reportable segment:</div>"
+    cleaned = clean_html_to_plain_text(sample_html)
+    assert "Segment Operating Performance\n\nThe following table shows net sales by reportable segment:" in cleaned
+    assert "Segment Operating PerformanceThe" not in cleaned
+
+
 def test_annotate_text_with_clauses():
     """Verifies sentence highlighting wraps exact substantiating clauses in <mark> tags."""
     content = "Revenue increased 15% to $96.7B. Automotive gross margin was 18.2%. R&D investments expanded."
@@ -93,8 +122,8 @@ def test_sec_document_chunk_model():
 
 
 def test_annotate_grounded_highlights_guaranteed_fallback():
-    """Verifies that annotate_grounded_highlights_with_llm and fallback_sentence_highlight guarantee <mark> tags in content and excerpt."""
-    from agent.rag.sec_corpus import annotate_grounded_highlights_with_llm, fallback_sentence_highlight, derive_highlight_excerpt_from_content
+    """Verifies that annotate_grounded_highlights_with_llm guarantees <mark> tags in content and excerpt."""
+    from agent.rag.sec_corpus import annotate_grounded_highlights_with_llm
 
     chunks = [{
         "chunk_id": "c1",
@@ -116,4 +145,3 @@ def test_annotate_grounded_highlights_guaranteed_fallback():
     assert "</mark>" in annotated_chunk["content"]
     assert "<mark>" in annotated_chunk["highlight_excerpt"]
     assert "</mark>" in annotated_chunk["highlight_excerpt"]
-

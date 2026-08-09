@@ -376,8 +376,9 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     const rawQuery = activeSourceQuery?.query;
     const activeTicker = activeSourceQuery?.ticker?.toUpperCase().trim();
     const activeGcsUri = activeSourceQuery?.gcsUri?.toLowerCase().trim();
+    const targetCiteId = activeSourceQuery?.citeId?.toLowerCase().trim();
 
-    if ((!rawQuery && !activeGcsUri && !activeTicker) || consolidatedChunks.length === 0) return;
+    if ((!rawQuery && !activeGcsUri && !activeTicker && !targetCiteId) || consolidatedChunks.length === 0) return;
 
     const queryLower = (rawQuery || '').toLowerCase().trim();
     const queryParts = (rawQuery || '').split('|||').map((p) => p.toLowerCase().trim());
@@ -387,15 +388,41 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
       setSelectedCompanyFilter(activeTicker);
     }
 
+    // 0. Stage 0: Direct Citation ID match in chunk content
+    let matchIdx = -1;
+    if (targetCiteId) {
+      matchIdx = consolidatedChunks.findIndex((chunk) => {
+        const content = (chunk.content || '').toLowerCase();
+        const excerpt = (chunk.highlight_excerpt || '').toLowerCase();
+        return (
+          content.includes(`data-cite-id="${targetCiteId}"`) ||
+          content.includes(`id="${targetCiteId}"`) ||
+          content.includes(`cite: ${targetCiteId}`) ||
+          excerpt.includes(`cite: ${targetCiteId}`)
+        );
+      });
+    }
+
     // 1. Stage 1: Match by exact GCS URI or filename
-    let matchIdx = consolidatedChunks.findIndex((chunk) => {
-      const gcs = (chunk.gcs_uri || '').toLowerCase();
-      if (activeGcsUri && gcs && (gcs === activeGcsUri || gcs.includes(activeGcsUri))) {
-        return true;
-      }
-      const filename = gcs.split('/').pop() || '';
-      return queryParts.some((p) => p && (gcs.includes(p) || (filename && p.includes(filename))));
-    });
+    if (matchIdx === -1) {
+      matchIdx = consolidatedChunks.findIndex((chunk) => {
+        const comp = (chunk.company_name || chunk.ticker || '').toLowerCase();
+        const chkTicker = (chunk.ticker || (chunk.company_name ? chunk.company_name.split(' ')[0] : '')).toUpperCase();
+        if (activeTicker && chkTicker && chkTicker !== activeTicker && !comp.includes(activeTicker.toLowerCase())) {
+          return false;
+        }
+
+        const gcs = (chunk.gcs_uri || '').toLowerCase();
+        if (activeGcsUri && gcs && (gcs === activeGcsUri || gcs.endsWith(activeGcsUri))) {
+          return true;
+        }
+        const filename = gcs.split('/').pop() || '';
+        if (filename && filename.length > 4) {
+          return queryParts.some((p) => p && p.includes(filename.toLowerCase()));
+        }
+        return false;
+      });
+    }
 
     // 2. Stage 2: Strict Ticker + Fiscal Year + SEC Section
     if (matchIdx === -1) {
@@ -471,6 +498,24 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
 
       const targetIdx = matchIdx;
       const scrollAndPulseMark = () => {
+        // Priority Direct Target: Global DOM query for exact citeId tag
+        if (targetCiteId) {
+          const globalMark =
+            document.querySelector(`aside [data-cite-id="${targetCiteId}"]`) ||
+            document.querySelector(`aside #${targetCiteId}`);
+          if (globalMark) {
+            const cardEl = globalMark.closest('.p-3.5') as HTMLElement;
+            if (cardEl) {
+              cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            (globalMark as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            globalMark.classList.remove('citation-mark-pulse');
+            void (globalMark as HTMLElement).offsetWidth;
+            globalMark.classList.add('citation-mark-pulse');
+            return;
+          }
+        }
+
         const el = cardRefs.current[targetIdx];
         if (!el) return;
 
@@ -483,7 +528,6 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
           let bestMark: HTMLElement | null = null;
           let maxScore = -1;
 
-          const targetCiteId = activeSourceQuery?.citeId;
           if (targetCiteId) {
             const directMatch =
               el.querySelector(`[data-cite-id="${targetCiteId}"]`) ||

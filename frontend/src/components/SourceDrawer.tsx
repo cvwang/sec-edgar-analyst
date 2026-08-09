@@ -533,6 +533,35 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
     );
   };
 
+  const handleDrawerMarkClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const markNode = target.closest('[data-cite-id]') || target.closest('mark');
+    if (!markNode) return;
+
+    const rawCiteId = markNode.getAttribute('data-cite-id') || markNode.getAttribute('id');
+    if (!rawCiteId) return;
+
+    const citeId = rawCiteId.toLowerCase().trim();
+    if (!citeId) return;
+
+    const matchingBadges = Array.from(
+      document.querySelectorAll<HTMLButtonElement>(`button[data-cite-id="${citeId}"]`)
+    );
+
+    if (matchingBadges.length === 0) return;
+
+    matchingBadges.forEach((badge) => {
+      badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      badge.classList.remove('citation-flash-pulse');
+      void badge.offsetWidth;
+      badge.classList.add('citation-flash-pulse');
+
+      setTimeout(() => {
+        badge.classList.remove('citation-flash-pulse');
+      }, 1800);
+    });
+  };
+
   return (
     <aside className="w-full h-full bg-white border-l border-gray-200 flex flex-col shrink-0 overflow-hidden shadow-xs">
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
@@ -556,7 +585,7 @@ export const SourceDrawer: React.FC<SourceDrawerProps> = ({ lastResponse, active
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3" onClick={handleDrawerMarkClick}>
         {consolidatedChunks.length > 0 ? (
           consolidatedChunks.map((chunk, idx) => {
             const isExpanded = !!expandedChunks[idx];

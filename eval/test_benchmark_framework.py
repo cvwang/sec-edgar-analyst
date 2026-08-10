@@ -142,3 +142,15 @@ def test_benchmark_runner_mocked_execution(tmp_path):
         data = json.load(f)
         assert data["summary"]["total_cases"] == 5
         assert data["summary"]["execution_error_rate_pct"] == 0.0
+
+
+def test_golden_dataset_stress_test_cases():
+    golden_path = os.path.join(os.path.dirname(__file__), "golden_dataset.json")
+    with open(golden_path, "r") as f:
+        cases = json.load(f)
+
+    assert len(cases) == 24
+    case_ids = [c["case_id"] for c in cases]
+    assert "test_023_edge_2025_filing_availability" in case_ids
+    assert "test_024_edge_multi_company_citation_isolation" in case_ids
+

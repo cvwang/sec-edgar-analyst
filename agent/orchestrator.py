@@ -304,18 +304,24 @@ INSTRUCTIONS FOR THIS RESPONSE:
 
         # Automatic SEC Filing Chunk Retrieval Fallback if 10-K filings cited in narrative or prompt but missing from RAG chunks
         has_sec_chunks = any(c.get("source_type", "sec_10k") == "sec_10k" for c in raw_chunks)
-        cited_tickers_in_narrative = set(re.findall(r'\b(AAPL|TSLA|META|NVDA|MSFT|GOOGL|AMZN)\b', narrative, re.IGNORECASE))
-        prompt_tickers_in_query = set(re.findall(r'\b(AAPL|TSLA|META|NVDA|MSFT|GOOGL|AMZN)\b', user_prompt, re.IGNORECASE))
-        target_tickers_for_rag = cited_tickers_in_narrative.union(prompt_tickers_in_query)
+        bq_tickers = {str(b.get("ticker", "")).upper() for b in captured_bq_records if b.get("ticker")}
+        narrative_tokens = {t.upper() for t in re.findall(r'\b[A-Za-z]{1,5}\b', narrative)}
+        prompt_tokens = {t.upper() for t in re.findall(r'\b[A-Za-z]{1,5}\b', user_prompt)}
+        non_ticker_words = {
+            "SEC", "USD", "ITEM", "THE", "FOR", "AND", "MDA", "WITH", "THAT", "THIS", "FROM", "WILL",
+            "OUR", "INC", "CORP", "TOTAL", "NET", "YEAR", "DATA", "NOT", "ALL", "NEW", "RISK", "MD&A"
+        }
+        candidate_tickers = (narrative_tokens | prompt_tokens | bq_tickers) - non_ticker_words
+        target_tickers_for_rag = candidate_tickers & bq_tickers if bq_tickers else candidate_tickers
 
         if not has_sec_chunks and target_tickers_for_rag:
-            prompt_years = [int(y) for y in re.findall(r'\b(202[0-9])\b', user_prompt)] or [2023]
+            prompt_years = [int(y) for y in re.findall(r'\b(202[0-9])\b', user_prompt)]
             for tk in target_tickers_for_rag:
                 try:
                     search_sec_filing_chunks_tool(
                         query="Item 7 MD&A operating income revenue performance disclosures",
                         ticker=tk.upper(),
-                        requested_years=prompt_years,
+                        requested_years=prompt_years if prompt_years else None,
                     )
                 except Exception as e:
                     logger.warning(f"Auto RAG retrieval fallback failed for {tk}: {e}")

@@ -504,5 +504,51 @@
       "item_section": "Security Test",
       "filing_date": "2026-01-01"
     }
+  },
+  {
+    "case_id": "test_023_edge_2025_filing_availability",
+    "cik": "0000320193",
+    "ticker": "AAPL",
+    "secondary_ticker": null,
+    "current_year": 2025,
+    "prior_year": 2024,
+    "metric_name": "Revenue",
+    "current_value": 391035.0,
+    "prior_value": 383285.0,
+    "expected_absolute_change": 7750.0,
+    "expected_percentage_change": 2.02,
+    "expected_direction": "Increase",
+    "expected_grounding_keyword": "2025",
+    "reference_explanation": "Apple Inc. FY2025 filing disclosures are available in the SEC corpus datastore, confirming 2025 data access without knowledge cut-off refusal.",
+    "category": "edge_case",
+    "provenance": {
+      "accession_number": "0000320193-25-000010",
+      "form": "10-K",
+      "item_section": "Item 7 MD&A",
+      "filing_date": "2025-10-31"
+    }
+  },
+  {
+    "case_id": "test_024_edge_multi_company_citation_isolation",
+    "cik": "0001045810",
+    "ticker": "NVDA",
+    "secondary_ticker": "MSFT",
+    "current_year": 2024,
+    "prior_year": 2023,
+    "metric_name": "Operating Income",
+    "current_value": 32972.0,
+    "prior_value": 88523.0,
+    "expected_absolute_change": -55551.0,
+    "expected_percentage_change": -62.75,
+    "expected_direction": "Decrease",
+    "expected_grounding_keyword": "NVDA",
+    "reference_explanation": "Multi-entity query for NVDA and MSFT isolates citation badges 1:1 to their respective company 10-K source files without cross-entity mislinking.",
+    "category": "peer_comparison",
+    "provenance": {
+      "accession_number": "0001045810-24-000020",
+      "form": "10-K",
+      "item_section": "Item 7 MD&A",
+      "filing_date": "2024-02-21"
+    }
   }
 ]

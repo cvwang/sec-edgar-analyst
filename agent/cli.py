@@ -3,7 +3,7 @@
 import os
 from typing import Dict, Any
 from agent.config import settings
-from agent.orchestrator import RootOrchestrator
+from app.app_controller import AppController
 
 
 def print_banner():
@@ -22,7 +22,7 @@ def run_cli_session():
     """Runs multi-turn chat session with persistent state and LLM intent parsing."""
     print_banner()
 
-    orchestrator = RootOrchestrator()
+    app_controller = AppController()
     session_id = "user_session_001"
 
     while True:
@@ -37,8 +37,8 @@ def run_cli_session():
 
             print(f"\n🚀 Running Agent for session '{session_id}'...\n")
 
-            # Dispatch Query directly to RootOrchestrator (LLM intent parsing)
-            res = orchestrator.dispatch_query(
+            # Dispatch Query directly to AppController (LLM intent parsing)
+            res = app_controller.dispatch_query(
                 prompt=user_input,
                 session_id=session_id,
             )
@@ -49,7 +49,7 @@ def run_cli_session():
 
             narrative = res.get("narrative", "")
 
-            stored_history = orchestrator.session_store.get_session_history(session_id)
+            stored_history = app_controller.session_store.get_session_history(session_id)
 
             # Output Report & Memory Info
             print("=" * 70)
@@ -65,7 +65,7 @@ def run_cli_session():
                 gcs_uri = f"gs://{settings.gcp_project_id}-sec-reports/{primary.lower()}_report.md"
                 print(f"\n🔒 Requesting GCS export: {gcs_uri}")
 
-                unapproved = orchestrator.dispatch_query(
+                unapproved = app_controller.dispatch_query(
                     prompt=user_input,
                     session_id=session_id,
                     export_gcs_uri=gcs_uri,
@@ -76,7 +76,7 @@ def run_cli_session():
 
                 confirm = input("\nGrant Human Approval for GCS Export? (y/n): ").strip().lower()
                 if confirm in ("y", "yes"):
-                    approved = orchestrator.dispatch_query(
+                    approved = app_controller.dispatch_query(
                         prompt=user_input,
                         session_id=session_id,
                         export_gcs_uri=gcs_uri,

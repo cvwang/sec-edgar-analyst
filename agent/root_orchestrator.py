@@ -1,9 +1,10 @@
-"""ADK Root Orchestrator and Financial Analyst Agent supervising financial variance, peer comparison, and thematic tracking."""
+"""Google ADK Root Orchestrator supervising financial variance reasoning, peer comparison, and thematic tracking."""
 
 import os
 import re
 import time
 import uuid
+import json
 import asyncio
 import concurrent.futures
 import logging
@@ -18,9 +19,14 @@ from agent.config import settings
 from agent.constitution import SYSTEM_CONSTITUTION
 from agent.tools.calculation_engine import calculate_financial_variance_tool
 from agent.rag.bigquery_store import query_bigquery_financial_metrics_tool
-from agent.rag.sec_corpus import reset_grounded_chunks, get_grounded_chunks, add_grounded_chunks, annotate_grounded_highlights_with_llm, search_sec_filing_chunks_tool
+from agent.rag.sec_corpus import (
+    reset_grounded_chunks,
+    get_grounded_chunks,
+    add_grounded_chunks,
+    annotate_grounded_highlights_with_llm,
+    search_sec_filing_chunks_tool,
+)
 from agent.subagents.search_subagent import search_tool
-from agent.memory.session_store import PersistentSessionStore
 from agent.observability.logging_config import log_tool_execution
 from agent.observability.tracer import trace_span
 from agent.observability.cost_tracker import CostTracker
@@ -29,7 +35,6 @@ from agent.guardrails.model_armor import model_armor_guard
 
 logger = logging.getLogger(__name__)
 telemetry_sink = BigQueryTelemetrySink()
-
 
 
 def model_armor_before_model_callback(callback_context, llm_request: LlmRequest) -> Optional[LlmResponse]:
@@ -177,8 +182,8 @@ def consolidate_grounded_chunks(chunks: List[dict]) -> List[dict]:
     return list(merged_map.values())
 
 
-class FinancialAnalystAgent:
-    """Financial Analyst Agent using Google ADK LlmAgent and Runner for financial reasoning and dynamic tool calling."""
+class RootOrchestrator:
+    """ADK Root Orchestrator supervising financial variance reasoning, peer comparison, and thematic tracking."""
 
     def __init__(self):
         self.reasoning_model = settings.reasoning_model
@@ -188,7 +193,7 @@ class FinancialAnalystAgent:
         os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.gcp_region)
 
         self.root_agent = LlmAgent(
-            name="root_analyst_agent",
+            name="root_orchestrator_agent",
             model=self.reasoning_model,
             instruction=SYSTEM_CONSTITUTION,
             before_model_callback=model_armor_before_model_callback,
@@ -206,7 +211,7 @@ class FinancialAnalystAgent:
             session_service=self.session_service,
         )
 
-    @trace_span("FinancialAnalystAgent.run_analysis")
+    @trace_span("RootOrchestrator.run_analysis")
     def run_analysis(
         self,
         user_prompt: str,
@@ -422,7 +427,6 @@ INSTRUCTIONS FOR THIS RESPONSE:
         if narrative and grounded_chunks:
             grounded_chunks = annotate_grounded_highlights_with_llm(grounded_chunks, narrative, claims_with_ids=claims_with_ids)
 
-
         citations = [c["citation"] for c in grounded_chunks if c.get("citation")]
 
         # Extract tickers & fiscal years dynamically from model A2UI payload, grounded RAG chunks, tool outputs, and citations (zero hardcoding)
@@ -433,7 +437,7 @@ INSTRUCTIONS FOR THIS RESPONSE:
         a2ui_matches = re.findall(r'```a2ui([\s\S]*?)```', narrative, re.IGNORECASE)
         for block in a2ui_matches:
             try:
-                payload = json.loads(block.trim() if hasattr(block, 'trim') else block.strip())
+                payload = json.loads(block.strip())
                 for msg in payload:
                     for comp in msg.get("updateComponents", {}).get("components", []):
                         for k in ["ticker", "peer_ticker"]:
@@ -643,92 +647,5 @@ INSTRUCTIONS FOR THIS RESPONSE:
         }
 
 
-
 # Expose module-level root_agent for Google ADK AgentEvaluator discovery
-root_agent = FinancialAnalystAgent().root_agent
-
-
-class RootOrchestrator:
-    """ADK Root Orchestrator supervising FinancialAnalystAgent and persistent session memory."""
-
-    def __init__(self):
-        self.reasoning_model = settings.reasoning_model
-        self.analyst_agent = FinancialAnalystAgent()
-        self.session_store = PersistentSessionStore()
-
-    @trace_span("RootOrchestrator.dispatch")
-    def dispatch_query(
-        self,
-        prompt: str,
-        session_id: str = "default_session",
-        export_gcs_uri: str = "",
-        human_approved_export: bool = False,
-    ) -> Dict[str, Any]:
-        """Routes user queries directly to ADK FinancialAnalystAgent and manages persistent session memory."""
-        if not prompt:
-            raise ValueError("No query prompt provided.")
-
-        try:
-            # 1. Retrieve persistent session history and construct recent context summary with target company propagation
-            raw_history = self.session_store.get_session_history(session_id)
-            history_summary = ""
-            recent_ticker = ""
-            if raw_history:
-                turn_lines = []
-                for t in raw_history[-4:]:
-                    if isinstance(t, dict):
-                        u_q = t.get("user_query", "")
-                        a_r = t.get("agent_response", "")[:300]
-                        turn_lines.append(f"User: {u_q}\nAgent: {a_r}")
-                        last_resp = t.get("metadata", {}).get("last_response", {})
-                        past_tk = last_resp.get("ticker")
-                        if past_tk and past_tk != "SEC":
-                            recent_ticker = past_tk
-
-                history_summary = "\n".join(turn_lines)
-                if recent_ticker:
-                    history_summary += f"\nACTIVE CONVERSATION CONTEXT: The primary target company currently discussed in this thread is '{recent_ticker}'. If the user prompt is a follow-up question without an explicit ticker (e.g. 'company risks', 'operating margin', 'revenue'), assume the target company is '{recent_ticker}'."
-
-            # 2. Run analysis directly using ADK FinancialAnalystAgent and Runner
-            analysis_res = self.analyst_agent.run_analysis(
-                user_prompt=prompt,
-                context_summary=history_summary,
-                session_id=session_id,
-            )
-
-            export_status_dict = None
-            if export_gcs_uri and analysis_res.get("is_success"):
-                export_req = ExportReportRequest(
-                    ticker="REPORT",
-                    destination_gcs_uri=export_gcs_uri,
-                    report_content=analysis_res.get("narrative", ""),
-                )
-                export_res = export_financial_report(export_req, human_approved=human_approved_export)
-                export_status_dict = export_res.model_dump()
-
-            if analysis_res.get("narrative"):
-                # 3. Save turn to persistent session store with full response payload metadata
-                self.session_store.save_session_turn(
-                    session_id=session_id,
-                    user_query=prompt,
-                    agent_response=analysis_res.get("narrative", ""),
-                    metadata={"last_response": analysis_res},
-                )
-                self.session_store.save_last_response(session_id, analysis_res)
-
-            analysis_res["export_status"] = export_status_dict
-            return analysis_res
-        except Exception as e:
-            err_msg = str(e)
-            if "Reauthentication is needed" in err_msg or "RefreshError" in err_msg or "401" in err_msg:
-                narrative = "⚠️ GCP Authentication Expired: Reauthentication is needed. Please run `gcloud auth application-default login` in your terminal to re-authenticate with Google Cloud."
-            else:
-                narrative = f"⚠️ Query execution failed: {err_msg}"
-
-            log_tool_execution("dispatch_query", "outcome", {"error": err_msg}, status="ERROR")
-            return {
-                "is_success": False,
-                "error": err_msg,
-                "narrative": narrative,
-                "model_used": "failed-auth",
-            }
+root_agent = RootOrchestrator().root_agent

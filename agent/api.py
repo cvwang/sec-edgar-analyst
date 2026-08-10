@@ -9,7 +9,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from agent.config import settings
-from agent.orchestrator import RootOrchestrator, export_financial_report, ExportReportRequest
+from app.app_controller import AppController
+from agent.root_orchestrator import export_financial_report, ExportReportRequest
 from agent.observability.logging_config import log_tool_execution
 
 app = FastAPI(
@@ -27,8 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Instantiate ADK Root Orchestrator
-orchestrator = RootOrchestrator()
+# Instantiate AppController web/session dispatcher
+app_controller = AppController()
 
 
 class AnalysisApiRequest(BaseModel):
@@ -77,7 +78,7 @@ def health_check():
 @app.get("/api/v1/sessions")
 def list_sessions():
     """Lists all persistent conversation thread summaries."""
-    sessions = orchestrator.session_store.list_sessions()
+    sessions = app_controller.session_store.list_sessions()
     return {"sessions": sessions}
 
 
@@ -85,14 +86,14 @@ def list_sessions():
 def create_session(request: Optional[CreateSessionRequest] = None):
     """Creates a new conversation thread."""
     title = request.title if request else None
-    meta = orchestrator.session_store.create_session(title=title)
+    meta = app_controller.session_store.create_session(title=title)
     return meta
 
 
 @app.get("/api/v1/sessions/{session_id}")
 def get_session(session_id: str):
     """Retrieves full details for a session thread including turns history and last response payload."""
-    session = orchestrator.session_store.get_session(session_id)
+    session = app_controller.session_store.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     return session
@@ -101,7 +102,7 @@ def get_session(session_id: str):
 @app.patch("/api/v1/sessions/{session_id}")
 def update_session(session_id: str, request: UpdateSessionRequest):
     """Updates custom display title for a conversation thread."""
-    meta = orchestrator.session_store.update_session_title(session_id, request.title)
+    meta = app_controller.session_store.update_session_title(session_id, request.title)
     if not meta:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     return meta
@@ -110,14 +111,14 @@ def update_session(session_id: str, request: UpdateSessionRequest):
 @app.delete("/api/v1/sessions")
 def clear_all_sessions():
     """Clears all persistent conversation session threads in memory and on disk."""
-    orchestrator.session_store.clear_all_sessions()
+    app_controller.session_store.clear_all_sessions()
     return {"status": "SUCCESS", "message": "All session history cleared."}
 
 
 @app.delete("/api/v1/sessions/{session_id}")
 def delete_session(session_id: str):
     """Deletes a conversation session thread."""
-    success = orchestrator.session_store.delete_session(session_id)
+    success = app_controller.session_store.delete_session(session_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     return {"status": "SUCCESS", "message": f"Session '{session_id}' deleted."}
@@ -253,13 +254,13 @@ def analyze_financials(request: AnalysisApiRequest):
     )
 
     try:
-        response = orchestrator.dispatch_query(
+        response = app_controller.dispatch_query(
             prompt=request.prompt,
             session_id=request.session_id,
         )
 
         # Save last response payload to restore split-pane source drawer on thread switch
-        orchestrator.session_store.save_last_response(request.session_id, response)
+        app_controller.session_store.save_last_response(request.session_id, response)
 
         log_tool_execution(
             tool_name="api_analyze_financials",
@@ -290,7 +291,7 @@ def export_report(request: ExportApiRequest):
 @app.get("/api/v1/history")
 def get_session_history(session_id: str = "user_session_001"):
     """Retrieves stored persistent session turns for a given session ID."""
-    history = orchestrator.session_store.get_session_history(session_id)
+    history = app_controller.session_store.get_session_history(session_id)
     return {
         "session_id": session_id,
         "turns_stored": len(history),

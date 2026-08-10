@@ -1,2 +1,2 @@
 """Agent package root."""
-from agent.orchestrator import root_agent
+from agent.root_orchestrator import root_agent

@@ -6,7 +6,8 @@ import pytest
 from agent.tools.calculation_engine import calculate_financial_variance, VarianceRequest
 from agent.memory.session_store import PersistentSessionStore
 from agent.config import settings
-from agent.orchestrator import RootOrchestrator, FinancialAnalystAgent, export_financial_report, ExportReportRequest
+from agent.root_orchestrator import RootOrchestrator, export_financial_report, ExportReportRequest
+from app.app_controller import AppController
 
 GOLDEN_DATASET_PATH = os.path.join(os.path.dirname(__file__), "golden_dataset.json")
 
@@ -116,9 +117,9 @@ def test_root_orchestrator_end_to_end(monkeypatch):
                 return MockGenerateResponse('{"query_type": "variance_analysis", "tickers": ["AAPL"], "requested_years": [2023, 2022], "metric_name": "Revenue"}')
             return MockGenerateResponse("### Executive Summary for AAPL (Revenue)\nApple Inc. FY2023 10-K reported Total Net Sales of $383,285 million, down 2.8% due to macroeconomic headwinds in hardware sales.")
 
-    orchestrator = RootOrchestrator()
+    controller = AppController()
 
-    response = orchestrator.dispatch_query(
+    response = controller.dispatch_query(
         prompt="Analyze revenue for AAPL between FY2022 and FY2023",
     )
 
@@ -141,17 +142,17 @@ def test_model_configuration_validation():
     assert isinstance(settings.tool_model, str)
     assert len(settings.tool_model) > 0
 
-    agent = FinancialAnalystAgent()
+    agent = RootOrchestrator()
     assert agent.reasoning_model == settings.reasoning_model
 
 
 def test_multiturn_conversational_context_retention():
     """Evaluates multi-turn context retention ensuring follow-up queries retain active ticker/metric from session history."""
-    orchestrator = RootOrchestrator()
+    controller = AppController()
     session_id = "test_multiturn_context_session"
 
     # Turn 1: Initial request for AMZN
-    turn1_res = orchestrator.dispatch_query(
+    turn1_res = controller.dispatch_query(
         prompt="show me amzn financial data across all years available",
         session_id=session_id,
     )
@@ -159,7 +160,7 @@ def test_multiturn_conversational_context_retention():
     assert len(turn1_res["narrative"]) > 0
 
     # Turn 2: Follow-up request omitting ticker ("what about 2024?")
-    turn2_res = orchestrator.dispatch_query(
+    turn2_res = controller.dispatch_query(
         prompt="what about 2024?",
         session_id=session_id,
     )
@@ -169,8 +170,8 @@ def test_multiturn_conversational_context_retention():
 
 def test_multiyear_range_query_expansion():
     """Evaluates multi-year range query parsing (e.g. 2022-2024) to ensure all intermediate years are retrieved."""
-    orchestrator = RootOrchestrator()
-    res = orchestrator.dispatch_query(prompt="show me amzn financial data from 2022-2024")
+    controller = AppController()
+    res = controller.dispatch_query(prompt="show me amzn financial data from 2022-2024")
     assert res["is_success"] is True
     assert len(res["narrative"]) > 0
 
@@ -195,7 +196,7 @@ def test_native_function_calling_dispatch():
     assert isinstance(sec_res, list)
 
     # 2. Test Agent registration of ADK root_agent tools
-    agent = FinancialAnalystAgent()
+    agent = RootOrchestrator()
     root_tool_names = [t.name if hasattr(t, "name") else getattr(t, "__name__", str(t)) for t in agent.root_agent.tools]
     assert "search_agent" in root_tool_names
     assert "calculate_financial_variance_tool" in root_tool_names
@@ -232,9 +233,9 @@ def test_thematic_tracking_qualitative_risk_disclosures(monkeypatch):
     assert len(meta_risk_chunks) > 0
     assert all(c.ticker == "META" for c in meta_risk_chunks)
 
-    # 2. Verify end-to-end RootOrchestrator handles risk disclosures prompt cleanly
-    orchestrator = RootOrchestrator()
-    res = orchestrator.dispatch_query("Analyze Meta risk factors disclosure")
+    # 2. Verify end-to-end AppController handles risk disclosures prompt cleanly
+    controller = AppController()
+    res = controller.dispatch_query("Analyze Meta risk factors disclosure")
     assert res["is_success"] is True
     assert res["narrative"] is not None
     assert len(res["narrative"]) > 0
@@ -266,18 +267,18 @@ def test_multiturn_qualitative_risk_followup(monkeypatch):
 
     monkeypatch.setattr(VertexAISearchClient, "search_filings", mock_search_filings)
 
-    orchestrator = RootOrchestrator()
+    controller = AppController()
     session_id = "test_multiturn_risk_session"
 
     # Turn 1: Initial financial highlights for TSLA
-    turn1_res = orchestrator.dispatch_query(
+    turn1_res = controller.dispatch_query(
         prompt="Explain Tesla 2023 financial highlights",
         session_id=session_id,
     )
     assert turn1_res["is_success"] is True
 
     # Turn 2: Follow-up asking about business risks omitting ticker ("explain the business risks")
-    turn2_res = orchestrator.dispatch_query(
+    turn2_res = controller.dispatch_query(
         prompt="explain the business risks",
         session_id=session_id,
     )

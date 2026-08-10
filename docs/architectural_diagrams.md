@@ -12,16 +12,17 @@ flowchart TD
         UI["React 18 / TypeScript Web UI<br/>(Split-Pane Context & A2UI Renderer)"]
     end
 
-    subgraph API_Security ["API & Guardrail Perimeter"]
+    subgraph API_Security ["API & Session Layer"]
         FastAPI["FastAPI / Cloud Run Server"]
-        ModelArmorIn["Model Armor Ingress Callback<br/>(model_armor_before_model_callback)"]
-        ModelArmorOut["Model Armor Egress Callback<br/>(model_armor_after_model_callback)"]
+        AppController["AppController<br/>(app/app_controller.py)"]
+        SessionStore["Persistent Session Store<br/>(agent/memory/session_store.py)"]
     end
 
     subgraph ADK_Orchestrator ["Agentic Core & Orchestration"]
-        Supervisor["Root Orchestrator<br/>(google.adk.agents.llm_agent.LlmAgent)"]
+        Supervisor["Root Orchestrator<br/>(agent/root_orchestrator.py - LlmAgent & Runner)"]
         Constitution["System Constitution<br/>(agent/constitution.py)"]
-        SessionStore["Persistent Session Store<br/>(agent/memory/session_store.py)"]
+        ModelArmorIn["Model Armor Ingress Callback<br/>(model_armor_before_model_callback)"]
+        ModelArmorOut["Model Armor Egress Callback<br/>(model_armor_after_model_callback)"]
     end
 
     subgraph Tools_Subagents ["Tools & Sub-Agents"]
@@ -39,12 +40,13 @@ flowchart TD
 
     %% Execution Flow Connections
     UI -->|POST /api/chat| FastAPI
-    FastAPI --> ModelArmorIn
+    FastAPI --> AppController
+    AppController <--> SessionStore
+    AppController --> ModelArmorIn
     ModelArmorIn -- Prompt Clean --> Supervisor
     ModelArmorIn -- Threat Blocked --> UI
     
     Supervisor --- Constitution
-    Supervisor <--> SessionStore
     
     Supervisor -->|Structured Metric Lookup| BQTool
     Supervisor -->|Variance Math Calculation| MathTool

@@ -15,7 +15,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from unittest.mock import patch, MagicMock
 from google.genai import types
-from agent.orchestrator import RootOrchestrator
+from app.app_controller import AppController
+from agent.root_orchestrator import RootOrchestrator
 from agent.rag.vertex_search import VertexSearchResult
 from agent.rag.bigquery_store import FinancialMetricRecord
 from agent.guardrails.model_armor import ModelArmorResult
@@ -324,8 +325,8 @@ def run_benchmark(
         Models.generate_content = create_timing_wrapper(Models.generate_content, "total_gemini_reasoning_time_sec")
         evaluator.evaluate_case_layer2_llm_judge = create_timing_wrapper(evaluator.evaluate_case_layer2_llm_judge, "total_llm_judge_time_sec")
 
-    # Instantiate RootOrchestrator AFTER active patches/wrappers are set up
-    orchestrator = RootOrchestrator()
+    # Instantiate AppController AFTER active patches/wrappers are set up
+    app_controller = AppController()
 
     results = []
     total_math_passed = 0
@@ -355,8 +356,8 @@ def run_benchmark(
             try:
                 CURRENT_EVAL_CASE["current"] = case
                 session_id = f"eval_{case['case_id']}_{eval_run_id}"
-                # Dispatch query through REAL RootOrchestrator and ADK FinancialAnalystAgent pipeline
-                resp = orchestrator.dispatch_query(prompt=prompt, session_id=session_id)
+                # Dispatch query through REAL AppController and ADK RootOrchestrator pipeline
+                resp = app_controller.dispatch_query(prompt=prompt, session_id=session_id)
 
 
                 if not resp.get("is_success", False):

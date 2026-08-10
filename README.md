@@ -3,7 +3,7 @@
 An agentic financial analyst system designed to automate period-over-period financial variance analysis (Revenue, Operating Income, Net Income) and perform longitudinal thematic tracking across SEC 10-K filings.
 
 ## Architecture Overview
-- **Orchestration:** Google Agent Development Kit (ADK) `RootOrchestrator` & `FinancialAnalystAgent`.
+- **Orchestration:** Google Agent Development Kit (ADK) `RootOrchestrator` (`agent/root_orchestrator.py`) supervised by `AppController` (`app/app_controller.py`).
 - **Model Routing:** Gemini 2.5 Pro (financial reasoning & synthesis) vs. Gemini 3.5 Flash (metric lookup, tool calling, evaluation).
 - **Calculation Engine:** Deterministic variance calculation engine for quantitative accuracy.
 - **Context & Memory:** Gemini Context Caching for 10-K filings and financial analyst system constitution.
@@ -17,21 +17,26 @@ An agentic financial analyst system designed to automate period-over-period fina
 .
 ├── README.md
 ├── SPECIFICATION.md
+├── app/
+│   ├── __init__.py
+│   └── app_controller.py       <- Web/Session AppController
 ├── agent/
 │   ├── __init__.py
 │   ├── config.py
 │   ├── constitution.py
-│   ├── orchestrator.py
+│   ├── root_orchestrator.py   <- ADK RootOrchestrator (LlmAgent & Runner)
+│   ├── subagents/
+│   │   └── search_subagent.py
 │   ├── tools/
-│   │   ├── __init__.py
-│   │   ├── calculation_engine.py
-│   │   └── sec_retriever.py
+│   │   └── calculation_engine.py
 │   ├── memory/
-│   │   └── cache_manager.py
+│   │   └── session_store.py
 │   ├── guardrails/
-│   │   └── pii_scrubber.py
+│   │   └── model_armor.py
 │   └── observability/
 │       ├── logging_config.py
+│       ├── cost_tracker.py
+│       ├── telemetry_sink.py
 │       └── tracer.py
 ├── eval/
 │   ├── golden_dataset.json

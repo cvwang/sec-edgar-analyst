@@ -4,7 +4,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from agent.observability.cost_tracker import CostTracker, CostBreakdown
 from agent.observability.telemetry_sink import BigQueryTelemetrySink, TelemetryEvent
-from agent.orchestrator import RootOrchestrator
+from agent.root_orchestrator import RootOrchestrator
+from app.app_controller import AppController
 
 
 def test_cost_tracker_gemini_pro_calculation():
@@ -105,9 +106,9 @@ def test_bigquery_telemetry_sink_offline_fallback():
     assert success is False
 
 
-@patch("agent.orchestrator.FinancialAnalystAgent.run_analysis")
-def test_root_orchestrator_telemetry_output(mock_run):
-    """Evaluates that RootOrchestrator includes telemetry metadata in dispatch responses."""
+@patch("agent.root_orchestrator.RootOrchestrator.run_analysis")
+def test_app_controller_telemetry_output(mock_run):
+    """Evaluates that AppController includes telemetry metadata in dispatch responses."""
     mock_run.return_value = {
         "is_success": True,
         "narrative": "Revenue grew by 10%.",
@@ -120,8 +121,8 @@ def test_root_orchestrator_telemetry_output(mock_run):
         },
     }
 
-    orchestrator = RootOrchestrator()
-    res = orchestrator.dispatch_query(prompt="Analyze AAPL Revenue", session_id="test_sess")
+    controller = AppController()
+    res = controller.dispatch_query(prompt="Analyze AAPL Revenue", session_id="test_sess")
 
     assert res["is_success"] is True
     assert "telemetry" in res

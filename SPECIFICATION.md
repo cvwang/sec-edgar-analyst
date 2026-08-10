@@ -8,9 +8,9 @@
 - Strict Pydantic input (`VarianceRequest`) and output (`VarianceResult`) models.
 - Guided error handling to return actionable feedback to the LLM if metrics are missing or invalid.
 
-### 2. ADK Root Orchestrator (`agent/orchestrator.py`)
-- Defines `RootOrchestrator` supervising `FinancialAnalystAgent`.
-- Registers tools (`calculate_financial_variance`, `fetch_sec_10k_context`).
+### 2. Web App Controller & ADK Root Orchestrator
+- **`app/app_controller.py`**: Defines `AppController`, managing `PersistentSessionStore`, context propagation, and request dispatching.
+- **`agent/root_orchestrator.py`**: Defines ADK `RootOrchestrator` (`LlmAgent` & `Runner`), owning tools (`search_tool`, `calculate_financial_variance_tool`, `query_bigquery_financial_metrics_tool`). Standalone testable with zero FastAPI dependencies.
 - Routes complex reasoning prompts to Gemini 2.5 Pro and tool/eval calls to Gemini 3.5 Flash.
 - Implements human-in-the-loop approval hook before executing external export calls.
 

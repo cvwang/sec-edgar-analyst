@@ -155,14 +155,14 @@ def test_grounded_context_persistence_across_threads():
 
     # Save turn via store directly
     store = app.state if hasattr(app, "state") else None
-    from agent.api import orchestrator
-    orchestrator.session_store.save_session_turn(
+    from agent.api import app_controller
+    app_controller.session_store.save_session_turn(
         session_id=sid_a,
         user_query="Analyze Apple revenue 2023",
         agent_response="Apple 2023 revenue was $383,285M.",
         metadata={"last_response": grounded_data_a},
     )
-    orchestrator.session_store.save_last_response(sid_a, grounded_data_a)
+    app_controller.session_store.save_last_response(sid_a, grounded_data_a)
 
     # Retrieve Thread A details
     res_get_a = client.get(f"/api/v1/sessions/{sid_a}")

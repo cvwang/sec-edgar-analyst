@@ -42,7 +42,7 @@ Defined in [`agent/constitution.py`](file:///Users/cvwang/Documents/gcp/sec-edga
 - **GCP Model Armor Screening ([`agent/guardrails/model_armor.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/guardrails/model_armor.py)):** Wrapped using `google-cloud-modelarmor` SDK client.
   - **Ingress Hook (`model_armor_before_model_callback`):** Intercepts prompt injection (e.g., `"ignore previous instructions"`, `"override system prompt"`) before sending to the model, returning an immediate `[MODEL_ARMOR_BLOCK:STAGE=INGRESS]` response.
   - **Egress Hook (`model_armor_after_model_callback`):** Sanitizes model output for unauthorized policy violations before rendering to the client.
-- **Human-In-The-Loop (HITL) Gate:** External storage or report exports (`export_financial_report` in [`agent/orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/orchestrator.py#L120)) return `PENDING_HUMAN_APPROVAL` until explicitly confirmed by the user.
+- **Human-In-The-Loop (HITL) Gate:** External storage or report exports (`export_financial_report` in [`agent/root_orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/root_orchestrator.py#L120)) return `PENDING_HUMAN_APPROVAL` until explicitly confirmed by the user.
 
 ---
 
@@ -68,7 +68,7 @@ flowchart TD
 ```
 
 #### 🏗️ Prototype to Capstone Evolution
-- Evolved from a simple single-prompt script into a modular ADK multi-agent architecture ([`agent/orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/orchestrator.py)) featuring specialized sub-agents ([`agent/subagents/search_subagent.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/subagents/search_subagent.py)).
+- Evolved from a simple single-prompt script into a modular ADK multi-agent architecture ([`agent/root_orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/root_orchestrator.py)) featuring specialized sub-agents ([`agent/subagents/search_subagent.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/subagents/search_subagent.py)) and session management controller ([`app/app_controller.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/app/app_controller.py)).
 
 #### 🔀 Structured SQL vs. Unstructured RAG Fusion
 - **Structured Data (BigQuery):** Quantitatively precise financial metrics (Revenue, Net Income, Operating Income) are retrieved via [`query_bigquery_financial_metrics_tool`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/rag/bigquery_store.py) from indexed BigQuery datasets (`sec_financial_metrics`).
@@ -99,11 +99,11 @@ flowchart TD
 
 1. **Google ADK Event Loop Deadlock (`_exec_async` helper):**
    - *Problem:* ADK's `Runner` mixed synchronous execution with async coroutines, throwing `RuntimeError: This event loop is already running` inside FastAPI request handlers.
-   - *Solution:* Implemented `_exec_async()` in [`agent/orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/orchestrator.py#L92), using an isolated single-worker `ThreadPoolExecutor` to execute async coroutines safely when an active loop is detected.
+   - *Solution:* Implemented `_exec_async()` in [`agent/root_orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/root_orchestrator.py), using an isolated single-worker `ThreadPoolExecutor` to execute async coroutines safely when an active loop is detected.
 
 2. **Model Armor Callback Integration (`model_armor_before_model_callback`):**
    - *Problem:* Wiring Model Armor directly inside tool bodies caused partial model executions and unhandled exceptions.
-   - *Solution:* Created native ADK callbacks ([`agent/orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/orchestrator.py#L35-L89)) that intercept requests/responses at the model boundary and cleanly short-circuit execution with `LlmResponse` error messages when policy violations occur.
+   - *Solution:* Created native ADK callbacks ([`agent/root_orchestrator.py`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/agent/root_orchestrator.py)) that intercept requests/responses at the model boundary and cleanly short-circuit execution with `LlmResponse` error messages when policy violations occur.
 
 3. **Grounding Alignment without Distorting Source Text:**
    - *Problem:* Naive regex replacement for text highlighting broke when Gemini slightly modified punctuation or word spacing in filing quotes.

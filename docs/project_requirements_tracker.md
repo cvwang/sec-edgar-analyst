@@ -9,10 +9,10 @@
 
 ## 📊 Feature & Requirement Tracking Summary
 
-* **Total Tracked Requirements**: 37
-* **Completed & Verified (✅)**: 33
-* **In Progress / Active Auditing & Setup (🟡)**: 4 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; SEC-07: Zero Hardcoded Tickers & Year Fallbacks Cleanup; EVAL-04: Agent Evaluation Robustness & Capstone Presentation Evals Focus)
-* **Not Started / Upcoming / TODO (🔴)**: 0
+* **Total Tracked Requirements**: 40
+* **Completed & Verified (✅)**: 36
+* **In Progress / Argolis Active Setup (🟡)**: 3 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; SEC-07: Zero Hardcoded Tickers Cleanup)
+* **Planned / Upcoming (🔴)**: 1 (EVAL-06: Multi-Turn Benchmark Suite)
 
 ---
 
@@ -96,7 +96,10 @@
 | **EVAL-01** | **Automated Pytest Integration Suite**: Complete unit and integration test suite with mocked LLM and Search APIs. (`fsi_scoping.md` § Technical Requirements) | `eval/test_eval_harness.py`, `eval/test_benchmark_framework.py`, `eval/test_multi_thread_session.py`, `eval/test_model_armor.py`, `eval/test_telemetry_sink.py`, `eval/test_sec_corpus_rag.py` | ✅ **Completed** | 61 out of 61 unit, integration, and benchmark tests passing cleanly across the entire evaluation suite (100% success rate). |
 | **EVAL-02** | **Automated Benchmark & Evals Framework**: Faithfulness, grounding recall, and accuracy assertions against golden dataset. (`FDE Onboarding` § Part B-4; `fsi_tdd.md` § 5.0) | `eval/golden_dataset.json`, `eval/run_benchmark.py`, `eval/evaluator.py`, `eval/metrics.py`, `evaluation_results.csv` | ✅ **Completed** | Implemented `EvalEngine` automated evaluation framework (Faithfulness, Grounding Recall, Calculation Accuracy) exporting evaluation results to `evaluation_results.csv` (Overall score: 93/100 across 5 core evaluation dimensions). |
 | **EVAL-03** | **Defensive Retry Policies with Exponential Backoff**: Safe wrapper handling GCP HTTP 429 rate limits gracefully. (`fsi_tdd.md` § 3.1) | `agent/orchestrator.py` | ✅ **Completed** | Implemented defensive execution wrappers around ADK Runner invocation. |
-| **EVAL-04** | **Agent Evaluation Robustness & Capstone Presentation Evals Focus**: Comprehensive stress testing of the evaluation suite (faithfulness, recall, calculation accuracy) and featuring extensive evaluation methodology and metrics across capstone presentation slides and panel defense guide. | `eval/`, `docs/capstone_defense_guide.md`, presentation slides | 🟡 **In Progress** | Active evaluation suite robustness stress testing, golden dataset expansion, and heavy evaluation focus integration across capstone defense presentation slides and panel defense guide. |
+| **EVAL-04** | **Agent Evaluation Robustness & Capstone Presentation Evals Focus**: Comprehensive stress testing of the evaluation suite (faithfulness, recall, calculation accuracy) and featuring extensive evaluation methodology and metrics across capstone presentation slides and panel defense guide. | `eval/`, `docs/capstone_defense_guide.md`, presentation slides | ✅ **Completed** | Expanded golden dataset (24 test cases), stress tested evaluation harness, integrated agent evaluation methodology into `docs/capstone_defense_guide.md`, and generated 12-slide capstone presentation deck (`docs/capstone_presentation_slides.md`). |
+| **EVAL-05** | **Google ADK Native Trajectory & Tool Choice Evaluation**: Integration of ADK native `AgentEvaluator` (`google.adk.evaluation.agent_evaluator.AgentEvaluator`), `revenue_variance.evalset.json`, `test_config.json`, tool selection accuracy evaluators, and trajectory verification. | `eval/generate_evalset.py`, `eval/evalsets/revenue_variance.evalset.json`, `eval/evalsets/test_config.json` | ✅ **Completed** | Implemented Google ADK native evaluation pipeline transforming `golden_dataset.json` into `revenue_variance.evalset.json`, configured `test_config.json`, and verified clean native `adk eval` execution. |
+| **EVAL-06** | **Multi-Turn Benchmark Evaluation Suite**: Multi-turn prompt sequences (initial query $\rightarrow$ follow-up query) to score context decay, reference resolution, and multi-turn RAG faithfulness. | `eval/golden_dataset.json`, `eval/run_benchmark.py`, `eval/evaluator.py` | 🔴 **Planned** | Planned extension of single-turn benchmark suite to evaluate multi-turn conversational quality, reference resolution, and context retention across 3+ interaction turns. |
+| **EVAL-07** | **Evaluation Suite Performance Optimization & Profiling**: Speeding up evaluation runs by separating fast tier (<30s mocked evaluation) from slow tier (live Gemini + LLM Judge evaluation) with wall-clock time breakdown profiler. | `eval/run_benchmark.py`, `eval/evaluator.py` | ✅ **Completed** | Instrumented `run_benchmark.py` with wall-clock time profiling breakdown (Gemini reasoning, Model Armor, BigQuery/Search, LLM Judge) and added fast tier mocked execution. |
 
 ---
 

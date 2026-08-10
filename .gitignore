@@ -15,8 +15,11 @@ crash.log
 override.tf
 override.tf.json
 
-# Pytest / Cache / Memory
+# Pytest / Cache / Memory / ADK Evals
 .pytest_cache/
+.adk/
+agent/.adk/
+*.evalset_result.json
 *.log
 agent_sessions.json
 

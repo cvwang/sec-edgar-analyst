@@ -259,6 +259,28 @@ def format_markdown_report(summary: Dict[str, Any], results: List[Dict[str, Any]
     return "\n".join(md)
 
 
+# Profiling accumulators for Part 0
+PROFILER = {
+    "total_gemini_reasoning_time_sec": 0.0,
+    "total_model_armor_time_sec": 0.0,
+    "total_external_data_time_sec": 0.0,
+    "total_llm_judge_time_sec": 0.0,
+    "case_timings": [],
+}
+
+
+def create_timing_wrapper(original_fn, category_key):
+    """Wraps a function to accumulate elapsed wall-clock time into PROFILER[category_key]."""
+    def wrapper(*args, **kwargs):
+        t0 = time.monotonic()
+        try:
+            return original_fn(*args, **kwargs)
+        finally:
+            elapsed = time.monotonic() - t0
+            PROFILER[category_key] += elapsed
+    return wrapper
+
+
 def run_benchmark(
     mocked: bool = True,
     limit: Optional[int] = None,
@@ -287,8 +309,22 @@ def run_benchmark(
         auth_patch.start()
         ma_prompt_patch.start()
         ma_response_patch.start()
+    else:
+        # Live mode timing wrappers
+        from agent.guardrails.model_armor import ModelArmorGuard
+        from agent.rag.vertex_search import VertexAISearchClient
+        from agent.rag.bigquery_store import BigQueryFinancialStore
+        from google.genai.models import AsyncModels, Models
 
-    # Instantiate RootOrchestrator AFTER active patches are started
+        ModelArmorGuard.sanitize_user_prompt = create_timing_wrapper(ModelArmorGuard.sanitize_user_prompt, "total_model_armor_time_sec")
+        ModelArmorGuard.sanitize_model_response = create_timing_wrapper(ModelArmorGuard.sanitize_model_response, "total_model_armor_time_sec")
+        VertexAISearchClient.search_filings = create_timing_wrapper(VertexAISearchClient.search_filings, "total_external_data_time_sec")
+        BigQueryFinancialStore.query_metrics = create_timing_wrapper(BigQueryFinancialStore.query_metrics, "total_external_data_time_sec")
+        AsyncModels.generate_content = create_timing_wrapper(AsyncModels.generate_content, "total_gemini_reasoning_time_sec")
+        Models.generate_content = create_timing_wrapper(Models.generate_content, "total_gemini_reasoning_time_sec")
+        evaluator.evaluate_case_layer2_llm_judge = create_timing_wrapper(evaluator.evaluate_case_layer2_llm_judge, "total_llm_judge_time_sec")
+
+    # Instantiate RootOrchestrator AFTER active patches/wrappers are set up
     orchestrator = RootOrchestrator()
 
     results = []
@@ -297,6 +333,7 @@ def run_benchmark(
     total_latency_ms = 0.0
 
     logger.info(f"Starting non-tautological benchmark evaluation on {len(dataset)} cases (Mode: {'MOCKED' if mocked else 'LIVE'})...")
+    full_run_start = time.monotonic()
 
     eval_run_id = int(time.monotonic())
     try:
@@ -403,6 +440,31 @@ def run_benchmark(
 
     logger.info(f"Benchmark completed! Report saved to {report_md_path}")
     logger.info(f"Math Accuracy: {math_accuracy_pct}% | Exec Errors: {execution_error_rate_pct}% | Grounding Recall: {avg_grounding:.4f} | ROUGE-L F1: {avg_rouge_l:.4f}")
+
+    full_wall_clock = time.monotonic() - full_run_start
+
+    print("\n" + "="*80)
+    print("PART 0 — PROFILE BREAKDOWN SUMMARY")
+    print("="*80)
+    print(f"Total wall-clock time for full run: {full_wall_clock:.2f} s ({full_wall_clock/60.0:.2f} min)")
+    print(f"Total time spent in real Gemini/genai calls (agent reasoning): {PROFILER['total_gemini_reasoning_time_sec']:.2f} s")
+    print(f"Total time spent in Model Armor calls (ingress + egress): {PROFILER['total_model_armor_time_sec']:.2f} s")
+    print(f"Total time spent in real external data calls (BigQuery, Vertex Search): {PROFILER['total_external_data_time_sec']:.2f} s")
+    print(f"Total time spent in LLM-judge calls (Vertex AI Evaluation): {PROFILER['total_llm_judge_time_sec']:.2f} s")
+    print(f"Number of cases run: {total_cases}")
+    
+    if results:
+        latencies = [r["latency_ms"] / 1000.0 for r in results]
+        avg_case_time = sum(latencies) / len(latencies)
+        max_case = max(results, key=lambda x: x["latency_ms"])
+        max_time = max_case["latency_ms"] / 1000.0
+        print(f"Average case latency: {avg_case_time:.2f} s")
+        print(f"Slowest case: '{max_case['case_id']}' at {max_time:.2f} s (Ratio to avg: {max_time/avg_case_time:.2f}x)")
+        if max_time > 3.0 * avg_case_time:
+            print(f"⚠️ OUTLIER DETECTED: Case '{max_case['case_id']}' took {max_time:.2f}s (>3x average).")
+        else:
+            print("No extreme single-case latency outlier (>3x avg) detected.")
+    print("="*80 + "\n")
 
     if regression_check:
         has_regression = False

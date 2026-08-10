@@ -35,37 +35,34 @@ This Technical Design Document outlines the architecture for the **SEC EDGAR Nat
 
 ### High-Level Diagram
 
-```
+```mermaid
 graph TD
-    User([Financial Analyst]) -->|1. Select Company & Periods| FE[React Frontend - TypeScript/Vite]
-    FE -->|2. Asynchronous API Request| BE[FastAPI Backend - Cloud Run]
+    User([Financial Analyst]) -->|1. Select Company & Periods| FE["React Frontend (TypeScript/Vite)"]
+    FE -->|2. Asynchronous API Request| BE["FastAPI Backend (Cloud Run)"]
     
-    subgraph Backend [FastAPI Backend - Secure Sandbox]
-        BE -->|3. Calculate Variances| CE[Variance Calculation Engine]
+    subgraph Backend ["FastAPI Backend (Secure Sandbox)"]
+        BE -->|3. Calculate Variances| CE["Variance Calculation Engine"]
         CE -->|4. Return Calculations| FE
         
         User -->|5. Trigger Explanation| FE
-        FE -->|6. Send Prompt + Calculations| OR[ADK Root Orchestrator]
+        FE -->|6. Send Prompt + Calculations| BE
+        BE -->|7. Dispatch to Agent| OR["ADK Root Orchestrator"]
         
-        OR -->|7. Verify Cache / Load 10-K| CM[Context Cache Manager]
-        CM -->|8. Fetch If Miss| GCS[Google Cloud Storage - SEC Corpus]
-        CM -->|9. Manage Session Cache| VACC[Vertex AI Context Cache]
+        OR -->|8. Verify Cache / Load 10-K| CM["Context Cache Manager"]
+        CM -->|9. Fetch If Miss| GCS["Google Cloud Storage (SEC Corpus)"]
+        CM -->|10. Manage Session Cache| VACC["Vertex AI Context Cache"]
         
-
-        OR -->|10. Query with Cached Context| GEM[Gemini 2.5 Pro / 3.5 Flash]
+        OR -->|11. Query with Cached Context| GEM["Gemini 2.5 Pro / 3.5 Flash"]
     end
     
-    BE -->|11. Export Spans/Traces| OTEL[OpenTelemetry / Cloud Trace]
-
-    BE -->|12. Stream Logs/Metrics| BQ[BigQuery Telemetry Sink]
-
+    BE -->|12. Export Spans/Traces| OTEL["OpenTelemetry / Cloud Trace"]
+    BE -->|13. Stream Logs/Metrics| BQ["BigQuery Telemetry Sink"]
     
-    subgraph RAG_Data_Foundation [Hybrid Search Layer]
-        OR -->|13. Hybrid RAG Query| VAIS[Vertex AI Search - Unstructured Text]
-        OR -->|14. Metadata Filtered Query| VVS[Vertex AI Vector Search]
-        OR -->|15. Structured Metric Lookup| BQ_FIN[BigQuery - Financial Metrics]
+    subgraph RAG_Data_Foundation ["Hybrid Search Layer"]
+        OR -->|14. Hybrid RAG Query| VAIS["Vertex AI Search (Unstructured Text)"]
+        OR -->|15. Metadata Filtered Query| VVS["Vertex AI Vector Search"]
+        OR -->|16. Structured Metric Lookup| BQ_FIN["BigQuery (Financial Metrics)"]
     end
-
 ```
 
 ### Architecture Principles

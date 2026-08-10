@@ -1,6 +1,6 @@
 {
-  "eval_set_id": "sec_revenue_variance_v1",
-  "name": "SEC EDGAR Revenue Variance Golden Set",
+  "eval_set_id": "sec_edgar_analyst_master_v1",
+  "name": "SEC EDGAR Natural Language Analyst Master Golden Set",
   "creation_timestamp": 0.0,
   "eval_cases": [
     {
@@ -833,6 +833,86 @@
           },
           "intermediate_data": {
             "tool_uses": []
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "test_023_edge_2025_filing_availability",
+      "evalId": "test_023_edge_2025_filing_availability",
+      "creation_timestamp": 0.0,
+      "conversation": [
+        {
+          "invocation_id": "test_023_edge_2025_filing_availability",
+          "creation_timestamp": 0.0,
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Check 2025 SEC filing availability for AAPL Revenue."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Apple Inc. FY2025 filing disclosures are available in the SEC corpus datastore, confirming 2025 data access without knowledge cut-off refusal."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "calculate_financial_variance_tool",
+                "args": {
+                  "ticker": "AAPL",
+                  "metric_name": "Revenue",
+                  "current_period_value": 391035.0,
+                  "prior_period_value": 383285.0
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "test_024_edge_multi_company_citation_isolation",
+      "evalId": "test_024_edge_multi_company_citation_isolation",
+      "creation_timestamp": 0.0,
+      "conversation": [
+        {
+          "invocation_id": "test_024_edge_multi_company_citation_isolation",
+          "creation_timestamp": 0.0,
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Compare the performance of NVDA and MSFT in 2024."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Multi-entity query for NVDA and MSFT isolates citation badges 1:1 to their respective company 10-K source files without cross-entity mislinking."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "calculate_financial_variance_tool",
+                "args": {
+                  "ticker": "NVDA",
+                  "metric_name": "Operating Income",
+                  "current_period_value": 32972.0,
+                  "prior_period_value": 88523.0
+                }
+              }
+            ]
           }
         }
       ]

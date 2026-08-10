@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 
 GOLDEN_DATASET_PATH = os.path.join(os.path.dirname(__file__), "golden_dataset.json")
 EVALSETS_DIR = os.path.join(os.path.dirname(__file__), "evalsets")
-EVALSET_FILE_PATH = os.path.join(EVALSETS_DIR, "revenue_variance.evalset.json")
+EVALSET_FILE_PATH = os.path.join(EVALSETS_DIR, "sec_edgar_analyst_master.evalset.json")
 TEST_CONFIG_FILE_PATH = os.path.join(EVALSETS_DIR, "test_config.json")
 
 
@@ -97,8 +97,8 @@ def build_evalset() -> Dict[str, Any]:
         eval_cases.append(case_entry)
 
     return {
-        "eval_set_id": "sec_revenue_variance_v1",
-        "name": "SEC EDGAR Revenue Variance Golden Set",
+        "eval_set_id": "sec_edgar_analyst_master_v1",
+        "name": "SEC EDGAR Natural Language Analyst Master Golden Set",
         "creation_timestamp": 0.0,
         "eval_cases": eval_cases,
     }

@@ -1,15 +1,15 @@
 {
   "summary": {
-    "timestamp": "2026-08-10T16:29:52Z",
+    "timestamp": "2026-08-10T18:54:08Z",
     "execution_mode": "MOCKED",
-    "total_cases": 24,
+    "total_cases": 22,
     "math_accuracy_pct": 100.0,
     "execution_error_rate_pct": 0.0,
-    "grounding_recall": 0.3681,
-    "rouge_l_f1": 0.4909,
+    "grounding_recall": 0.3515,
+    "rouge_l_f1": 0.4925,
     "faithfulness_score": 1.0,
     "relevance_score": 1.0,
-    "avg_latency_ms": 2814.82
+    "avg_latency_ms": 1306.92
   },
   "results": [
     {
@@ -28,7 +28,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3286.4921250147745,
+      "latency_ms": 2272.702125017531,
       "execution_error": false
     },
     {
@@ -47,7 +47,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2993.9468749798834,
+      "latency_ms": 1450.4023330518976,
       "execution_error": false
     },
     {
@@ -66,7 +66,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3189.9587919469923,
+      "latency_ms": 1212.9360829712823,
       "execution_error": false
     },
     {
@@ -85,7 +85,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2188.236583955586,
+      "latency_ms": 1355.1117080496624,
       "execution_error": false
     },
     {
@@ -104,7 +104,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2444.6024580392987,
+      "latency_ms": 1231.7940840730444,
       "execution_error": false
     },
     {
@@ -123,7 +123,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2434.7679580096155,
+      "latency_ms": 1405.8401249349117,
       "execution_error": false
     },
     {
@@ -142,7 +142,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3215.5030000722036,
+      "latency_ms": 1335.0713750114664,
       "execution_error": false
     },
     {
@@ -161,7 +161,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2560.2146250894293,
+      "latency_ms": 1718.1009999476373,
       "execution_error": false
     },
     {
@@ -180,7 +180,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2899.5172920404,
+      "latency_ms": 1464.6778329042718,
       "execution_error": false
     },
     {
@@ -199,7 +199,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2529.7068340005353,
+      "latency_ms": 1352.7646249858662,
       "execution_error": false
     },
     {
@@ -218,7 +218,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2638.5958330938593,
+      "latency_ms": 1424.9430419877172,
       "execution_error": false
     },
     {
@@ -237,7 +237,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2166.6348330909386,
+      "latency_ms": 1207.988000009209,
       "execution_error": false
     },
     {
@@ -256,7 +256,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2354.236999992281,
+      "latency_ms": 1294.4866250036284,
       "execution_error": false
     },
     {
@@ -275,7 +275,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2909.3641249928623,
+      "latency_ms": 1188.5376250138506,
       "execution_error": false
     },
     {
@@ -294,7 +294,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3201.5725841047242,
+      "latency_ms": 1478.340083034709,
       "execution_error": false
     },
     {
@@ -313,7 +313,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2955.711083021015,
+      "latency_ms": 1309.417000040412,
       "execution_error": false
     },
     {
@@ -332,7 +332,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2645.906124962494,
+      "latency_ms": 493.4836250031367,
       "execution_error": false
     },
     {
@@ -351,7 +351,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2373.3146670274436,
+      "latency_ms": 460.7833329355344,
       "execution_error": false
     },
     {
@@ -370,7 +370,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3288.6197089683264,
+      "latency_ms": 1317.3240000614896,
       "execution_error": false
     },
     {
@@ -389,7 +389,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3613.5187920881435,
+      "latency_ms": 1330.2279999479651,
       "execution_error": false
     },
     {
@@ -408,7 +408,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2253.077792003751,
+      "latency_ms": 1221.7980000423267,
       "execution_error": false
     },
     {
@@ -427,45 +427,7 @@
       "coherence_score": 0.9,
       "numerical_precision_score": 1.0,
       "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3045.0089579680935,
-      "execution_error": false
-    },
-    {
-      "case_id": "test_023_edge_2025_filing_availability",
-      "category": "edge_case",
-      "ticker": "AAPL",
-      "math_accuracy_pct": 100.0,
-      "is_math_accurate": true,
-      "numeric_recall": 0.2,
-      "keyword_recall": 1.0,
-      "grounding_recall": 0.6,
-      "rouge_1_f1": 0.4615,
-      "rouge_l_f1": 0.4615,
-      "faithfulness_score": 1.0,
-      "relevance_score": 1.0,
-      "coherence_score": 0.9,
-      "numerical_precision_score": 1.0,
-      "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 2781.456834054552,
-      "execution_error": false
-    },
-    {
-      "case_id": "test_024_edge_multi_company_citation_isolation",
-      "category": "peer_comparison",
-      "ticker": "NVDA",
-      "math_accuracy_pct": 100.0,
-      "is_math_accurate": true,
-      "numeric_recall": 0.0,
-      "keyword_recall": 1.0,
-      "grounding_recall": 0.5,
-      "rouge_1_f1": 0.4848,
-      "rouge_l_f1": 0.4848,
-      "faithfulness_score": 1.0,
-      "relevance_score": 1.0,
-      "coherence_score": 0.9,
-      "numerical_precision_score": 1.0,
-      "judge_reasoning": "Layer 1 deterministic proxy mode.",
-      "latency_ms": 3585.601874976419,
+      "latency_ms": 1225.4716670140624,
       "execution_error": false
     }
   ]

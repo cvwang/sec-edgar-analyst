@@ -644,6 +644,10 @@ INSTRUCTIONS FOR THIS RESPONSE:
 
 
 
+# Expose module-level root_agent for Google ADK AgentEvaluator discovery
+root_agent = FinancialAnalystAgent().root_agent
+
+
 class RootOrchestrator:
     """ADK Root Orchestrator supervising FinancialAnalystAgent and persistent session memory."""
 

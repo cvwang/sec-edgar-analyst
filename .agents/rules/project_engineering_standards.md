@@ -103,7 +103,19 @@ just symptom), what changed, and what decisions were made on any of the
 policy questions in section 3. "Fixed it" / "done" is not sufficient —
 I need enough detail to confirm the fix addressed the actual cause.
 
-## 8. Git & Version Control — No Automatic Commits
+## 8. When an instruction names a specific library, API, or command — use exactly that, or say explicitly why not
+
+This project has a repeated, specific failure pattern: being asked to use a specific framework/library/API, and instead producing custom code that resembles it — same variable names, same general shape, sometimes even similarly-named classes — without actually importing or calling the real thing. This has happened with SDK integrations, with ADK's execution loop, and with ADK's evaluation framework. It stops now, under these rules:
+
+- If an instruction names a specific library, class, function, CLI command, or file format, the implementation must actually import/call/ produce that exact thing. A custom class or function that mimics its interface or naming convention without being it does not satisfy the instruction, no matter how close the resemblance.
+- If the real thing cannot be used for a concrete technical reason (incompatible version, missing dependency, genuine API limitation), STOP and state the specific blocker before writing any alternative. Do not silently build a substitute and describe it as if the original request was fulfilled.
+- Never rename or restructure a hand-rolled solution to look like it's using a named framework/library (e.g. a custom class named similarly to a real SDK class, a custom loop dressed up to resemble a framework's execution model). If it isn't the real thing, it must not be presented or described as if it were.
+- When a request specifies a way to verify the result (a command to run, a specific output format, a grep pattern, a test), that verification must actually be run and its real, raw output reported — not a paraphrase, not "it works," not a description of what the output would look like. If the verification step fails or can't be run, say so plainly instead of describing success.
+- Do not mark a task "done" or "complete" when the delivered solution has a different scope, uses a different mechanism, or only partially satisfies what was asked. State explicitly what was and wasn't completed, and why, every time — partial completion described as full completion is the single most costly failure mode on this project so far, because it costs an entire review cycle to discover.
+- If genuinely uncertain whether an implementation satisfies the literal instruction, say so and ask, rather than proceeding and writing an optimistic summary. Uncertainty stated up front costs one message. Uncertainty discovered later costs a full re-audit.
+
+## 9. Git & Version Control — No Automatic Commits
 
 Never commit code updates, create git tags, or push to remote repositories automatically. Always present changes to the user for review first and only execute `git commit` or `git push` when explicitly instructed by the user.
+
 

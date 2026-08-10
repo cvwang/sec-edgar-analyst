@@ -29,6 +29,8 @@ Note: Engineering standards defined in [.agents/rules/project_engineering_standa
 ## Testing & Verification
 - **Pytest**: Run test suites using `pytest` before finalizing changes (`pytest eval/`).
 - **Evaluation Harness**: Ensure changes to agent tools or prompt routing do not regress scores against `eval/golden_dataset.json`.
+- **Raw Output Verification Standard**: Whenever asked to run a command, show output, or confirm API/test behavior, always report the actual raw command output rather than a paraphrase or summary. If something fails or cannot be verified, state the concrete result plainly.
+
 
 ## Dynamic Data & Zero Hardcoding Rules
 - **No Hardcoded Tickers or Fallback Years**: Never hardcode company ticker symbols (e.g. AAPL, NVDA, MSFT), static company mapping dictionaries, fallback ticker defaults, or fallback fiscal years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) in orchestrators, tools, API schemas, or frontend UI components. All company tickers and target fiscal years must be dynamically parsed from SEC corpus metadata, BigQuery tool outputs, or explicit user query payloads.

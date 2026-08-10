@@ -24,4 +24,6 @@ All requirements, specifications, and scope decisions MUST be evaluated against:
    - If the main repository folder is **unused (idle)**, create a new feature branch directly in the main repository (`git checkout -b feature/...`).
    - If the main repository folder is **in use** (another thread or active task is operating on a branch), create a dedicated Git worktree (`git worktree add -b feature/... ../<worktree-dir> main`) for task isolation.
    See [.agents/rules/rule-worktree-isolation.md](file:///.agents/rules/rule-worktree-isolation.md).
+9. **Exact Named Libraries/APIs & Verification Standard**: When an instruction specifies a named framework/library/API/command, use that exact primitive or state the concrete technical blocker up front. Never build hand-rolled lookalikes. Always paste actual raw execution output for verification. See [.agents/rules/project_engineering_standards.md](file:///.agents/rules/project_engineering_standards.md).
+
 

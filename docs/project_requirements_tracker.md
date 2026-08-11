@@ -10,8 +10,8 @@
 ## 📊 Feature & Requirement Tracking Summary
 
 * **Total Tracked Requirements**: 40
-* **Completed & Verified (✅)**: 36
-* **In Progress / Argolis Active Setup (🟡)**: 3 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access; SEC-07: Zero Hardcoded Tickers Cleanup)
+* **Completed & Verified (✅)**: 37
+* **In Progress / Argolis Active Setup (🟡)**: 2 (OBS-04: Cloud Trace Enablement & Argolis IAM; SEC-06: Google Identity & @google.com Email Access)
 * **Planned / Upcoming (🔴)**: 1 (EVAL-06: Multi-Turn Benchmark Suite)
 
 ---
@@ -74,7 +74,7 @@
 | **SEC-04** | **VPC Service Controls & Private Endpoints**: Securing GCS, BigQuery, and Vertex AI within a strict service perimeter. (`fsi_tdd.md` § 3.2) | `terraform/main.tf`, `deployment/deploy.sh` | ✅ **Completed** | Configured Cloud Run service perimeter, health probes (`/api/v1/health`), and IAM invoker bindings. |
 | **SEC-05** | **GCP Secret Manager Integration & Cloud Run Secret Mounts**: Provisioning Secret Manager secrets and IAM accessor bindings via Terraform. (`fsi_tdd.md` § 3.2; `FDE Onboarding` § Part B) | `terraform/main.tf` | ✅ **Completed** | Configured Secret Manager resource `google_secret_manager_secret.api_key_secret` and IAM `secretmanager.secretAccessor` binding in Terraform for container secret injection, while using Vertex AI ADC for zero-key LLM authentication. |
 | **SEC-06** | **Google Identity & @google.com Email Access Control**: Google OAuth2 / Identity-Aware Proxy (IAP) authentication restricting Cloud Run and web app access exclusively to `@google.com` accounts. | `agent/api.py`, `frontend/`, `terraform/main.tf` | 🟡 **In Progress** | Google OAuth2 / IAP setup for Cloud Run frontend and REST API endpoints restricted to `@google.com` user domain identity authentication. |
-| **SEC-07** | **Zero Hardcoded Fallbacks (Tickers & Years)**: Strict prohibition against hardcoded ticker symbols (e.g., AAPL, NVDA, MSFT), static company maps, or hardcoded default fallback years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) across backend orchestrators, tools, RAG retrievers, API schemas, and frontend components. (`AGENTS.md` Rule 7) | `agent/`, `frontend/` | 🟡 **Auditing & Cleanup** | Strict policy prohibiting hardcoded tickers & year fallbacks (`2023`); auditing orchestrator, API models, and tool retrieval logic to eviscerate default fallbacks. |
+| **SEC-07** | **Zero Hardcoded Fallbacks (Tickers & Years)**: Strict prohibition against hardcoded ticker symbols (e.g., AAPL, NVDA, MSFT), static company maps, or hardcoded default fallback years (e.g. defaulting to `2023`, `[2023]`, or `current_year=2023`) across backend orchestrators, tools, RAG retrievers, API schemas, and frontend components. (`AGENTS.md` Rule 7) | `agent/`, `frontend/` | ✅ **Completed** | Enforced zero hardcoding/fallbacks policy; dynamically parsed all tickers and fiscal years from SEC corpus metadata, BigQuery tool outputs, and LLM payloads across agent orchestrators, API schemas, and frontend UI components. |
 
 ---
 
@@ -115,7 +115,7 @@
 
 ## 🎉 Project Milestone & Status
 
-All **32 out of 35** core master requirements specified in `FDE Onboarding Project.md`, `fsi_scoping.md`, and `fsi_tdd.md` are **100% Complete & Verified (✅)**, with 3 remaining operational/eval setup tasks actively in progress for Argolis deployment.
+All **37 out of 40** master project requirements specified in `FDE Onboarding Project.md`, `fsi_scoping.md`, and `fsi_tdd.md` are **100% Complete & Verified (✅)**, with 2 remaining Argolis IAM/auth setup tasks in progress and 1 planned eval extension.
 
 ### Key Achievements
 1. **Agentic Architecture**: Full Google ADK Supervisor pattern with native multi-turn tool loops, dynamic subagent search, and context memory.

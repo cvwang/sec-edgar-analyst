@@ -6,6 +6,9 @@ This document contains the authoritative, production-grade Mermaid diagrams for 
 
 ## Diagram 1: End-to-End System Architecture (ADK + Model Armor + RAG + Telemetry)
 
+> [!TIP]
+> 🎨 **Presentation Slide SVG Asset**: A widescreen 16:9 vector SVG file aligned with Google Cloud Light Theme is available at [`docs/images/architecture_diagram1_gcp_light.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/images/architecture_diagram1_gcp_light.svg).
+
 ```mermaid
 flowchart TD
     subgraph Presentation ["Presentation Layer"]

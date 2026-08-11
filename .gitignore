@@ -38,12 +38,21 @@ fsi_scoping.md
 fsi_tdd.md
 docs/Multi-agent orchestration_ Template workflows and ADK 2.md
 docs/adk-search-subagent-reference.md
+speaker_notes.md
+
 
 # Raw SEC EDGAR Data Filings
 data/
 data/10k_filings/
 *.md.tmp
 
-# Documents and Presentations
+# Documents, Diagrams, and Presentations
+*.svg
 *.pdf
 *.pptx
+
+# PPTX and SVG Generation Scripts
+scripts/generate_presentation*.py
+scripts/generate_architecture*.py
+scripts/generate_native_editable_pptx.py
+

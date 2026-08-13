@@ -149,8 +149,10 @@ def test_golden_dataset_stress_test_cases():
     with open(golden_path, "r") as f:
         cases = json.load(f)
 
-    assert len(cases) == 24
+    assert len(cases) == 39
     case_ids = [c["case_id"] for c in cases]
     assert "test_023_edge_2025_filing_availability" in case_ids
     assert "test_024_edge_multi_company_citation_isolation" in case_ids
+    assert "test_mt_001_aapl_drilldown" in case_ids
+
 

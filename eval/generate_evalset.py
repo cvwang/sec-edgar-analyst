@@ -44,12 +44,52 @@ def generate_natural_query(case: Dict[str, Any]) -> str:
     return f"How did {ticker}'s {metric.lower()} change from fiscal year {prior_yr} to {curr_yr}?"
 
 
-def build_evalset() -> Dict[str, Any]:
-    with open(GOLDEN_DATASET_PATH, "r") as f:
-        golden_data = json.load(f)
+def build_case_conversation(case: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Builds conversation list (Invocations) for ADK EvalCase."""
+    conversation = []
 
-    eval_cases = []
-    for case in golden_data:
+    if case.get("is_multi_turn") and case.get("turns"):
+        for turn in case["turns"]:
+            t_idx = turn.get("turn_index", 1)
+            inv_id = f"{case['case_id']}_turn_{t_idx}"
+            query = turn["user_query"]
+            ref_explanation = turn.get("reference_explanation", "")
+
+            tool_uses = []
+            if turn.get("current_value") is not None and turn.get("prior_value") is not None:
+                tool_uses.append({
+                    "name": "calculate_financial_variance_tool",
+                    "args": {
+                        "ticker": turn.get("ticker"),
+                        "metric_name": turn.get("metric_name"),
+                        "current_period_value": turn.get("current_value"),
+                        "prior_period_value": turn.get("prior_value"),
+                    }
+                })
+            elif "risk" in turn.get("category", "") or "drilldown" in turn.get("category", ""):
+                tool_uses.append({
+                    "name": "search_tool",
+                    "args": {
+                        "request": f"Explain {turn.get('ticker')} {turn.get('current_year', 2023)} Risk Factors"
+                    }
+                })
+
+            conversation.append({
+                "invocation_id": inv_id,
+                "creation_timestamp": 0.0,
+                "user_content": {
+                    "role": "user",
+                    "parts": [{"text": query}]
+                },
+                "final_response": {
+                    "role": "model",
+                    "parts": [{"text": ref_explanation}]
+                },
+                "intermediate_data": {
+                    "tool_uses": tool_uses
+                }
+            })
+    else:
         query = generate_natural_query(case)
         ref_explanation = case.get("reference_explanation", "")
 
@@ -72,44 +112,70 @@ def build_evalset() -> Dict[str, Any]:
                 }
             })
 
+        conversation.append({
+            "invocation_id": case["case_id"],
+            "creation_timestamp": 0.0,
+            "user_content": {
+                "role": "user",
+                "parts": [{"text": query}]
+            },
+            "final_response": {
+                "role": "model",
+                "parts": [{"text": ref_explanation}]
+            },
+            "intermediate_data": {
+                "tool_uses": tool_uses
+            }
+        })
+
+    return conversation
+
+
+def build_evalsets() -> Dict[str, Dict[str, Any]]:
+    with open(GOLDEN_DATASET_PATH, "r") as f:
+        golden_data = json.load(f)
+
+    master_eval_cases = []
+    multiturn_eval_cases = []
+
+    for case in golden_data:
+        conv = build_case_conversation(case)
         case_entry = {
             "eval_id": case["case_id"],
             "evalId": case["case_id"],
             "creation_timestamp": 0.0,
-            "conversation": [
-                {
-                    "invocation_id": case["case_id"],
-                    "creation_timestamp": 0.0,
-                    "user_content": {
-                        "role": "user",
-                        "parts": [{"text": query}]
-                    },
-                    "final_response": {
-                        "role": "model",
-                        "parts": [{"text": ref_explanation}]
-                    },
-                    "intermediate_data": {
-                        "tool_uses": tool_uses
-                    }
-                }
-            ]
+            "conversation": conv
         }
-        eval_cases.append(case_entry)
+        master_eval_cases.append(case_entry)
+        if case.get("is_multi_turn"):
+            multiturn_eval_cases.append(case_entry)
 
     return {
-        "eval_set_id": "sec_edgar_analyst_master_v1",
-        "name": "SEC EDGAR Natural Language Analyst Master Golden Set",
-        "creation_timestamp": 0.0,
-        "eval_cases": eval_cases,
+        "master": {
+            "eval_set_id": "sec_edgar_analyst_master_v1",
+            "name": "SEC EDGAR Natural Language Analyst Master Golden Set",
+            "creation_timestamp": 0.0,
+            "eval_cases": master_eval_cases,
+        },
+        "multiturn": {
+            "eval_set_id": "multiturn_revenue_variance_v1",
+            "name": "SEC EDGAR Natural Language Analyst Multi-Turn Evaluation Suite",
+            "creation_timestamp": 0.0,
+            "eval_cases": multiturn_eval_cases,
+        }
     }
 
 
 def main():
     os.makedirs(EVALSETS_DIR, exist_ok=True)
-    evalset_data = build_evalset()
+    sets = build_evalsets()
 
     with open(EVALSET_FILE_PATH, "w") as f:
-        json.dump(evalset_data, f, indent=2)
+        json.dump(sets["master"], f, indent=2)
+
+    multiturn_path = os.path.join(EVALSETS_DIR, "multiturn_revenue_variance.evalset.json")
+    with open(multiturn_path, "w") as f:
+        json.dump(sets["multiturn"], f, indent=2)
 
     test_config_data = {
         "criteria": {
@@ -120,9 +186,11 @@ def main():
     with open(TEST_CONFIG_FILE_PATH, "w") as f:
         json.dump(test_config_data, f, indent=2)
 
-    print(f"Generated {len(evalset_data['eval_cases'])} ADK eval cases into {EVALSET_FILE_PATH}")
+    print(f"Generated {len(sets['master']['eval_cases'])} master ADK eval cases into {EVALSET_FILE_PATH}")
+    print(f"Generated {len(sets['multiturn']['eval_cases'])} multi-turn ADK eval cases into {multiturn_path}")
     print(f"Created test config at {TEST_CONFIG_FILE_PATH}")
 
 
 if __name__ == "__main__":
     main()
+

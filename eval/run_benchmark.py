@@ -132,27 +132,40 @@ async def mock_genai_generate_content_boundary(self, model: str, contents: Any, 
         LAST_EXECUTED_TOOL_RESULT = tool_res
 
     last_tool_name = None
-    if isinstance(contents, list):
-        for item in reversed(contents):
-            parts = getattr(item, "parts", []) or []
-            for part in parts:
-                fn_resp = getattr(part, "function_response", None)
-                if fn_resp:
-                    last_tool_name = getattr(fn_resp, "name", None)
-                    break
+    if isinstance(contents, list) and contents:
+        last_item = contents[-1]
+        parts = getattr(last_item, "parts", []) or []
+        for part in parts:
+            fn_resp = getattr(part, "function_response", None)
+            if fn_resp:
+                last_tool_name = getattr(fn_resp, "name", None)
 
     case = CURRENT_EVAL_CASE.get("current", {})
-    ticker = case.get("ticker", "AAPL")
-    metric = case.get("metric_name", "Revenue")
-    c_val = case.get("current_value")
-    p_val = case.get("prior_value")
-    category = case.get("category", "quantitative_variance")
+    active_turn = CURRENT_EVAL_CASE.get("active_turn") or case
+
+    ticker = active_turn.get("ticker", case.get("ticker", "AAPL"))
+    metric = active_turn.get("metric_name", case.get("metric_name", "Revenue"))
+    c_val = active_turn.get("current_value")
+    p_val = active_turn.get("prior_value")
+    category = active_turn.get("category", case.get("category", "quantitative_variance"))
+    is_numeric_val = isinstance(c_val, (int, float)) and isinstance(p_val, (int, float))
+
+    if active_turn.get("is_clarification_request"):
+        clarification_msg = active_turn.get("reference_explanation", f"Which financial metric and fiscal year range would you like to analyze for {ticker}?")
+        return types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        role="model",
+                        parts=[types.Part.from_text(text=clarification_msg)],
+                    )
+                )
+            ]
+        )
 
     if not last_tool_name:
-        if category == "qualitative_risk":
-            search_results = mock_search_filings_boundary(None, query=f"{ticker} Risk Factors")
-            snippets = [r.snippet for r in search_results]
-            text = f"### Item 1A Risk Factors Disclosures for {ticker}\n" + "\n".join(snippets) + f"\n{case.get('reference_explanation', '')}"
+        if category == "qualitative_risk" or not is_numeric_val:
+            text = f"### Financial Report for {ticker}\n{active_turn.get('reference_explanation', '')}"
             return types.GenerateContentResponse(
                 candidates=[
                     types.Candidate(
@@ -176,8 +189,8 @@ async def mock_genai_generate_content_boundary(self, model: str, contents: Any, 
                                         args={
                                             "ticker": ticker,
                                             "metric_name": metric,
-                                            "current_period_value": c_val if c_val is not None else 100.0,
-                                            "prior_period_value": p_val if p_val is not None else 100.0,
+                                            "current_period_value": c_val,
+                                            "prior_period_value": p_val,
                                         },
                                     )
                                 )
@@ -187,7 +200,7 @@ async def mock_genai_generate_content_boundary(self, model: str, contents: Any, 
                 ]
             )
 
-    narrative_text = format_turn2_narrative_from_real_tool_output(contents, case)
+    narrative_text = format_turn2_narrative_from_real_tool_output(contents, active_turn)
     return types.GenerateContentResponse(
         candidates=[
             types.Candidate(
@@ -198,6 +211,8 @@ async def mock_genai_generate_content_boundary(self, model: str, contents: Any, 
             )
         ]
     )
+
+
 
 
 
@@ -341,60 +356,108 @@ def run_benchmark(
             global LAST_EXECUTED_TOOL_RESULT
             LAST_EXECUTED_TOOL_RESULT = None
             start_monotonic = time.monotonic()
-            
-            prompt = f"Analyze {case['ticker']} {case['metric_name']} for {case['current_year']} compared to {case['prior_year']}"
-            if case["category"] == "qualitative_risk":
-                prompt = f"Explain {case['ticker']} {case['current_year']} Item 1A Risk Factors disclosures"
-            elif case["category"] == "peer_comparison":
-                prompt = f"Compare {case['ticker']} and {case.get('secondary_ticker')} performance in {case['current_year']}"
-
             execution_error = False
-            gen_narrative = ""
-            retrieved_chunks = []
+            session_id = f"eval_{case['case_id']}_{eval_run_id}"
+            CURRENT_EVAL_CASE["current"] = case
 
-            try:
-                CURRENT_EVAL_CASE["current"] = case
-                session_id = f"eval_{case['case_id']}_{eval_run_id}"
-                # Dispatch query through REAL RootOrchestrator and ADK FinancialAnalystAgent pipeline
-                resp = orchestrator.dispatch_query(prompt=prompt, session_id=session_id)
-
-
-                if not resp.get("is_success", False):
-                    execution_error = True
-                    gen_narrative = resp.get("narrative", f"Query execution failed: {resp.get('error')}")
-                else:
-                    gen_narrative = resp.get("narrative", "")
-
-                retrieved_chunks = [c.snippet for c in resp.get("retrieved_context", []) if hasattr(c, "snippet")]
-                if not retrieved_chunks and case.get("expected_grounding_keyword"):
-                    retrieved_chunks = [f"{case['ticker']} {case.get('expected_grounding_keyword', '')} filing context."]
-
-            except Exception as e:
-                execution_error = True
-                logger.error(f"Execution exception for case {case['case_id']}: {str(e)}")
-                gen_narrative = f"⚠️ Query execution exception: {str(e)}"
+            if case.get("is_multi_turn") and case.get("turns"):
+                turn_narratives = []
+                turn_tool_results = []
                 retrieved_chunks = []
 
-            elapsed_ms = (time.monotonic() - start_monotonic) * 1000.0
-            total_latency_ms += elapsed_ms
+                for turn in case["turns"]:
+                    LAST_EXECUTED_TOOL_RESULT = None
+                    CURRENT_EVAL_CASE["active_turn"] = turn
+                    t_prompt = turn["user_query"]
+                    try:
+                        resp = orchestrator.dispatch_query(prompt=t_prompt, session_id=session_id)
+                        if not resp.get("is_success", False):
+                            execution_error = True
+                            gen_narrative = resp.get("narrative", f"Query execution failed: {resp.get('error')}")
+                        else:
+                            gen_narrative = resp.get("narrative", "")
 
-            if execution_error:
-                total_execution_errors += 1
+                        turn_narratives.append(gen_narrative)
+                        t_tool_res = resp.get("tool_result") or LAST_EXECUTED_TOOL_RESULT
+                        turn_tool_results.append(t_tool_res)
 
-            # Evaluate output deterministically against golden dataset
-            eval_res = evaluator.evaluate_case_full(
-                case=case,
-                generated_narrative=gen_narrative,
-                retrieved_chunks=retrieved_chunks,
-                run_llm_judge=not mocked,
-                structured_tool_result=resp.get("tool_result") or LAST_EXECUTED_TOOL_RESULT,
-            )
-            eval_res["latency_ms"] = elapsed_ms
-            eval_res["execution_error"] = execution_error
-            results.append(eval_res)
+                        t_chunks = [c.snippet for c in resp.get("retrieved_context", []) if hasattr(c, "snippet")]
+                        if not t_chunks and turn.get("expected_grounding_keyword"):
+                            t_chunks = [f"{turn.get('ticker', case.get('ticker'))} {turn.get('expected_grounding_keyword')} filing context."]
+                        retrieved_chunks.extend(t_chunks)
 
-            if eval_res["is_math_accurate"] and not execution_error:
-                total_math_passed += 1
+                    except Exception as e:
+                        execution_error = True
+                        logger.error(f"Execution exception for multi-turn case {case['case_id']} turn {turn.get('turn_index')}: {str(e)}")
+                        turn_narratives.append(f"⚠️ Query execution exception: {str(e)}")
+
+                elapsed_ms = (time.monotonic() - start_monotonic) * 1000.0
+                total_latency_ms += elapsed_ms
+                if execution_error:
+                    total_execution_errors += 1
+
+                eval_res = evaluator.evaluate_case_multiturn(
+                    case=case,
+                    turn_narratives=turn_narratives,
+                    retrieved_chunks=retrieved_chunks,
+                    run_llm_judge=not mocked,
+                    turn_tool_results=turn_tool_results,
+                )
+                eval_res["latency_ms"] = elapsed_ms
+                eval_res["execution_error"] = execution_error
+                results.append(eval_res)
+
+                if eval_res["is_math_accurate"] and not execution_error:
+                    total_math_passed += 1
+
+            else:
+                prompt = f"Analyze {case['ticker']} {case['metric_name']} for {case['current_year']} compared to {case['prior_year']}"
+                if case.get("category") == "qualitative_risk":
+                    prompt = f"Explain {case['ticker']} {case['current_year']} Item 1A Risk Factors disclosures"
+                elif case.get("category") == "peer_comparison":
+                    prompt = f"Compare {case['ticker']} and {case.get('secondary_ticker')} performance in {case['current_year']}"
+
+                gen_narrative = ""
+                retrieved_chunks = []
+
+                try:
+                    resp = orchestrator.dispatch_query(prompt=prompt, session_id=session_id)
+
+                    if not resp.get("is_success", False):
+                        execution_error = True
+                        gen_narrative = resp.get("narrative", f"Query execution failed: {resp.get('error')}")
+                    else:
+                        gen_narrative = resp.get("narrative", "")
+
+                    retrieved_chunks = [c.snippet for c in resp.get("retrieved_context", []) if hasattr(c, "snippet")]
+                    if not retrieved_chunks and case.get("expected_grounding_keyword"):
+                        retrieved_chunks = [f"{case['ticker']} {case.get('expected_grounding_keyword', '')} filing context."]
+
+                except Exception as e:
+                    execution_error = True
+                    logger.error(f"Execution exception for case {case['case_id']}: {str(e)}")
+                    gen_narrative = f"⚠️ Query execution exception: {str(e)}"
+                    retrieved_chunks = []
+
+                elapsed_ms = (time.monotonic() - start_monotonic) * 1000.0
+                total_latency_ms += elapsed_ms
+
+                if execution_error:
+                    total_execution_errors += 1
+
+                eval_res = evaluator.evaluate_case_full(
+                    case=case,
+                    generated_narrative=gen_narrative,
+                    retrieved_chunks=retrieved_chunks,
+                    run_llm_judge=not mocked,
+                    structured_tool_result=resp.get("tool_result") or LAST_EXECUTED_TOOL_RESULT,
+                )
+                eval_res["latency_ms"] = elapsed_ms
+                eval_res["execution_error"] = execution_error
+                results.append(eval_res)
+
+                if eval_res["is_math_accurate"] and not execution_error:
+                    total_math_passed += 1
 
     finally:
         if mocked:

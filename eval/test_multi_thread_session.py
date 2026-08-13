@@ -194,3 +194,28 @@ def test_constitution_source_citation_rule():
     assert "GRANULAR GROUNDED SOURCE CITATION RULE" in SYSTEM_CONSTITUTION
     assert "(Source: <Ticker> <Year> 10-K <Section>, <gcs_uri>)" in SYSTEM_CONSTITUTION
 
+
+def test_cross_session_state_isolation(tmp_path):
+    """Evaluates cross-session state isolation ensuring distinct session_ids never bleed context, metadata, or turn history."""
+    store_file = os.path.join(tmp_path, "isolation_sessions.json")
+    store = PersistentSessionStore(storage_path=store_file)
+
+    sid_1 = "session_aapl_001"
+    sid_2 = "session_msft_002"
+
+    store.save_session_turn(sid_1, "Analyze AAPL revenue 2023", "AAPL 2023 revenue was $383,285M", {"ticker": "AAPL", "metric": "Revenue"})
+    store.save_session_turn(sid_2, "Analyze MSFT operating income 2023", "MSFT 2023 operating income was $88,523M", {"ticker": "MSFT", "metric": "Operating Income"})
+
+    hist_1 = store.get_session_history(sid_1)
+    hist_2 = store.get_session_history(sid_2)
+
+    assert len(hist_1) == 1
+    assert len(hist_2) == 1
+    assert hist_1[0]["metadata"]["ticker"] == "AAPL"
+    assert hist_2[0]["metadata"]["ticker"] == "MSFT"
+
+    # Assert no cross-contamination of queries or ticker metadata
+    assert "MSFT" not in str(hist_1)
+    assert "AAPL" not in str(hist_2)
+
+

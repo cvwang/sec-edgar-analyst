@@ -4,24 +4,148 @@ This document contains the authoritative, production-grade Mermaid diagrams for 
 
 ---
 
-## Diagram 1: End-to-End System Architecture (ADK + Model Armor + RAG + Telemetry)
+## Diagram 1D: Pure Unconstrained Architecture (Clean Organic Flow)
 
 > [!TIP]
-> 🎨 **Presentation Slide SVG Asset**: A widescreen 16:9 vector SVG file aligned with Google Cloud Light Theme is available at [`docs/images/architecture_diagram1_gcp_light.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/images/architecture_diagram1_gcp_light.svg).
+> 🎨 **Pure Diagram Assets (No Slide Frame Restraints)**:
+> - **Pure Flow Vector SVG**: [`docs/architecture_diagram1_pure.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_pure.svg)
+> - **4K Ultra-HD PNG**: [`docs/architecture_diagram1_4k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_4k.png)
+> - **8K Super-HD PNG**: [`docs/architecture_diagram1_8k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_8k.png)
 
 ```mermaid
 flowchart TD
-    subgraph Presentation ["Presentation Layer"]
-        UI["React 18 / TypeScript Web UI<br/>(Split-Pane Context & A2UI Renderer)"]
+    UI["React 18 / TypeScript Web UI<br/>(Split-Pane Context & Citations)"]
+    FastAPI["FastAPI REST Server<br/>(Cloud Run Gateway)"]
+    AppController["AppController<br/>(Session & Context Router)"]
+    SessionStore[("Persistent Session Store<br/>(Turn History Memory)")]
+
+    RootOrchestrator["ADK Root Orchestrator (Gemini 2.5 Pro / Flash)<br/>📜 Enforces System Constitution & Math Lock"]
+    Observability["Observability Core<br/>(BigQuery Telemetry & Cost Tracker)"]
+    ModelArmor["Security Perimeter<br/>(Model Armor Guardrail)"]
+
+    BQTool["BigQuery SQL Tool<br/>(Audited Financials)"]
+    MathTool["Variance Math Engine<br/>(YoY % Calculations)"]
+    SearchSubagent["10-K Search Subagent<br/>(Item 1A Risk & Item 7 MD&A)"]
+    ExportTool["HITL Export Gate<br/>(Human Approval Step)"]
+
+    BigQuery[("BigQuery Golden Tables<br/>(sec_financial_metrics)")]
+    VertexSearch[("Vertex AI Search<br/>(10-K Document Datastore)")]
+    GCS[("Cloud Storage GCS<br/>(Filings & Report Exports)")]
+
+    UI -->|POST /api/chat| FastAPI
+    FastAPI --> AppController
+    AppController <--> SessionStore
+    AppController -->|Grounded Narrative + A2UI Spec| RootOrchestrator
+
+    RootOrchestrator <--> Observability
+    RootOrchestrator <--> ModelArmor
+
+    RootOrchestrator --> BQTool
+    RootOrchestrator --> MathTool
+    RootOrchestrator --> SearchSubagent
+    RootOrchestrator --> ExportTool
+
+    BQTool --> BigQuery
+    SearchSubagent --> VertexSearch
+    VertexSearch -.-> GCS
+    ExportTool -->|if Approved| GCS
+```
+
+---
+
+## Diagram 1A: Executive Presentation Architecture (Capstone Slide Ready)
+
+
+> [!TIP]
+> 🎨 **Presentation Slide Assets**:
+> - **Widescreen 16:9 SVG**: [`docs/architecture_diagram1_executive.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_executive.svg)
+> - **4K Ultra-HD PNG**: [`docs/architecture_diagram1_executive_4k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_executive_4k.png)
+> - **8K Super-HD PNG**: [`docs/architecture_diagram1_executive_8k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_executive_8k.png)
+> - **Editable PowerPoint (.pptx)**: [`docs/architecture_diagram1_editable.pptx`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_editable.pptx)
+
+```mermaid
+flowchart LR
+    subgraph Tier1 ["1. Presentation Tier"]
+        UI["React 18 Web UI<br/>• Split-Pane Dashboard<br/>• Grounded Citations<br/>• Dynamic A2UI Renderer"]
     end
 
-    subgraph API_Session ["API & Session Management Layer"]
+    subgraph Tier2 ["2. API & Session Tier"]
+        FastAPI["FastAPI REST Server<br/>(Cloud Run)"]
+        AppController["AppController<br/>(Session & Context Router)"]
+        SessionStore[("Persistent Session Store<br/>(Turn History Memory)")]
+    end
+
+    subgraph Tier3 ["3. Agentic Core & Security"]
+        RootOrchestrator["ADK Root Orchestrator<br/>(Gemini 2.5 Pro / Flash)"]
+        Constitution["System Constitution<br/>(Grounding & Math Rules)"]
+        
+        subgraph Security ["Security Perimeter"]
+            ModelArmor["Model Armor Guardrail<br/>• Ingress Prompt Scan<br/>• Egress Policy Filter<br/>• Fail-Open Fallback"]
+        end
+        
+        subgraph Telemetry ["Observability Core"]
+            Observability["BigQuery Telemetry Sink<br/>& Token Cost Tracker"]
+        end
+    end
+
+    subgraph Tier4 ["4. Tools & Sub-Agents Tier"]
+        BQTool["BigQuery SQL Tool<br/>(Audited Financials)"]
+        MathTool["Variance Math Engine<br/>(YoY % Calculations)"]
+        SearchSubagent["10-K Search Subagent<br/>(Item 1A Risk & Item 7 MD&A)"]
+        ExportTool["HITL Export Gate<br/>(Human Approval Step)"]
+    end
+
+    subgraph Tier5 ["5. Enterprise Data Tier"]
+        BigQuery[("BigQuery Golden Tables<br/>(sec_financial_metrics)")]
+        VertexSearch[("Vertex AI Search<br/>(10-K Document Datastore)")]
+        GCS[("Cloud Storage GCS<br/>(Filings & Report Exports)")]
+    end
+
+    %% Direct Execution Flow Connections
+    UI -->|POST /api/chat| FastAPI
+    FastAPI --> AppController
+    AppController <--> SessionStore
+    AppController --> RootOrchestrator
+    
+    RootOrchestrator --- Constitution
+    RootOrchestrator <--> Security
+    RootOrchestrator --> Telemetry
+    
+    RootOrchestrator --> BQTool & MathTool & SearchSubagent & ExportTool
+    
+    BQTool --> BigQuery
+    SearchSubagent --> VertexSearch
+    VertexSearch -.-> GCS
+    ExportTool -->|If Approved| GCS
+    
+    RootOrchestrator -->|Grounded Narrative + A2UI Spec| AppController
+    AppController --> UI
+```
+
+---
+
+## Diagram 1B: Detailed Technical Architecture (Comprehensive Code Specification)
+
+> [!TIP]
+> 🎨 **Detailed Code Assets**:
+> - **Widescreen 16:9 SVG**: [`docs/architecture_diagram1_detailed.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_detailed.svg)
+> - **4K Ultra-HD PNG**: [`docs/architecture_diagram1_detailed_4k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_detailed_4k.png)
+> - **8K Super-HD PNG**: [`docs/architecture_diagram1_detailed_8k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_detailed_8k.png)
+> - **Editable PowerPoint (.pptx)**: [`docs/architecture_diagram1_detailed_editable.pptx`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_detailed_editable.pptx)
+
+```mermaid
+flowchart TD
+    subgraph Presentation ["1. Presentation Layer"]
+        UI["React 18 / TypeScript Web UI<br/>(agent/ui/src/)"]
+    end
+
+    subgraph API_Session ["2. API & Session Layer"]
         FastAPI["FastAPI REST Server<br/>(agent/api.py)"]
         AppController["AppController<br/>(app/app_controller.py)"]
         SessionStore["Persistent Session Store<br/>(agent/memory/session_store.py)"]
     end
 
-    subgraph ADK_Orchestrator ["Agentic Core & Orchestration Layer"]
+    subgraph ADK_Orchestrator ["3. Agentic Core & Security (ADK Framework)"]
         RootOrchestrator["RootOrchestrator<br/>(agent/root_orchestrator.py)"]
         ADK_Runner["Google ADK Runner & LlmAgent<br/>(google.adk.runners.Runner)"]
         Constitution["System Constitution<br/>(agent/constitution.py)"]
@@ -39,7 +163,7 @@ flowchart TD
         end
     end
 
-    subgraph Tools_Subagents ["Tools & Sub-Agents Layer"]
+    subgraph Tools_Subagents ["4. Tools & Sub-Agents Layer"]
         BQTool["query_bigquery_financial_metrics_tool<br/>(agent/rag/bigquery_store.py)"]
         MathTool["calculate_financial_variance_tool<br/>(agent/tools/calculation_engine.py)"]
         SearchSubagent["Search Subagent & search_tool<br/>(agent/subagents/search_subagent.py)"]
@@ -47,7 +171,7 @@ flowchart TD
         ExportTool["export_financial_report<br/>(Human-in-the-Loop Approval Gate)"]
     end
 
-    subgraph RAG_Data ["Enterprise RAG Data Foundation"]
+    subgraph RAG_Data ["5. Enterprise RAG Data Foundation"]
         BigQuery[("BigQuery Golden Tables<br/>(sec_financial_metrics)")]
         VertexSearch[("GCP Vertex AI Search DataStore<br/>(sec-10k-filings-datastore)")]
         GCSFilings[("GCS Bucket Filings<br/>gs://sec-analyst-sec-reports/filings/")]
@@ -88,7 +212,68 @@ flowchart TD
 
 ---
 
+## Diagram 1C: System Design & Modular Architecture (Interview & Scaling Whiteboard)
+
+> [!TIP]
+> 🎨 **System Design & Scaling Assets**:
+> - **Widescreen 16:9 SVG**: [`docs/architecture_diagram1_system_design.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_system_design.svg)
+> - **4K Ultra-HD PNG**: [`docs/architecture_diagram1_system_design_4k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_system_design_4k.png)
+> - **8K Super-HD PNG**: [`docs/architecture_diagram1_system_design_8k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_system_design_8k.png)
+> - **Editable PowerPoint (.pptx)**: [`docs/architecture_diagram1_system_design_editable.pptx`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/architecture_diagram1_system_design_editable.pptx)
+
+```mermaid
+flowchart LR
+    subgraph Client ["1. Client Tier"]
+        UI["Web Client / UI<br/>(React 18 SPA)<br/>🔄 Pluggable Mobile / Slack"]
+    end
+
+    subgraph API_Memory ["2. API & Session State"]
+        Gateway["Stateless API Gateway<br/>(FastAPI / Cloud Run)"]
+        Memory["Multi-Turn Session Memory<br/>🔄 Pluggable Redis / Spanner"]
+    end
+
+    subgraph Core ["3. Agentic Core & Security"]
+        Orchestrator["Agentic Orchestrator Core<br/>(Google ADK + Gemini)"]
+        SecurityProxy["Security Perimeter<br/>(Model Armor Proxy)<br/>🔄 Pluggable Guardrail"]
+        TelemetrySink["Telemetry & Audit Sink<br/>(Async Stream)<br/>🔄 Pluggable Datadog"]
+    end
+
+    subgraph Tools ["4. Decoupled Tool Services"]
+        SQLTool["Structured SQL Tool<br/>(BigQuery Metrics)"]
+        MathTool["Math Variance Engine<br/>(Isolated Calculation)"]
+        RAGSubagent["Qualitative RAG Subagent<br/>(Item 1A & Item 7)"]
+        HITLGate["HITL Approval Gate<br/>(Human Export Gate)"]
+    end
+
+    subgraph Storage ["5. Pluggable Data Stores"]
+        StructuredDB[("Analytical Database<br/>🔄 BigQuery / Snowflake")]
+        VectorIndex[("Vector & Hybrid Index<br/>🔄 Vertex Search / Pinecone")]
+        ObjectStore[("Object Store<br/>🔄 GCS / AWS S3")]
+    end
+
+    Client -->|HTTP/REST| Gateway
+    Gateway <--> Memory
+    Gateway --> Orchestrator
+    Orchestrator <--> SecurityProxy
+    Orchestrator --> TelemetrySink
+    
+    Orchestrator --> SQLTool & MathTool & RAGSubagent & HITLGate
+    
+    SQLTool --> StructuredDB
+    RAGSubagent --> VectorIndex
+    HITLGate -->|If Approved| ObjectStore
+```
+
+---
+
 ## Diagram 2: Agentic Execution & Tool Decision Waterfall
+
+> [!TIP]
+> 🎨 **Sequence Diagram Presentation Slide Assets**:
+> - **Widescreen 16:9 Vector SVG**: [`docs/sequence_diagram2_gcp_light.svg`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/sequence_diagram2_gcp_light.svg)
+> - **4K Ultra-HD PNG**: [`docs/sequence_diagram2_4k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/sequence_diagram2_4k.png)
+> - **8K Super-HD PNG**: [`docs/sequence_diagram2_8k.png`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/sequence_diagram2_8k.png)
+> - **Editable PowerPoint (.pptx)**: [`docs/sequence_diagram2_editable.pptx`](file:///Users/cvwang/Documents/gcp/sec-edgar-analyst/docs/sequence_diagram2_editable.pptx)
 
 ```mermaid
 sequenceDiagram

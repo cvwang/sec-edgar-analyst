@@ -20,8 +20,10 @@ override.tf.json
 .adk/
 agent/.adk/
 *.evalset_result.json
+eval/results/
 *.log
 agent_sessions.json
+
 
 # Frontend / Node / Vite / Compiled Assets
 frontend/node_modules/
@@ -39,6 +41,8 @@ fsi_tdd.md
 docs/Multi-agent orchestration_ Template workflows and ADK 2.md
 docs/adk-search-subagent-reference.md
 speaker_notes.md
+qa_prep_guide.md
+
 
 
 # Raw SEC EDGAR Data Filings
@@ -48,6 +52,7 @@ data/10k_filings/
 
 # Documents, Diagrams, and Presentations
 *.svg
+*.png
 *.pdf
 *.pptx
 
@@ -55,4 +60,20 @@ data/10k_filings/
 scripts/generate_presentation*.py
 scripts/generate_architecture*.py
 scripts/generate_native_editable_pptx.py
+scripts/generate_all_*.py
+scripts/generate_system_design_*.py
+scripts/generate_mermaid_clean_*.py
+scripts/generate_pure_*.py
+scripts/generate_sequence_diagram_*.py
+scripts/lock_and_build_*.py
+
+scripts/render_highres_png.py
+
+
+
+
+
+scripts/render_svg.swift
+
+
 

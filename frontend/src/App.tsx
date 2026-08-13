@@ -46,6 +46,28 @@ export function App() {
   const [leftWidth, setLeftWidth] = useState<number>(55);
   const [activeDrag, setActiveDrag] = useState<'sidebar' | 'split' | null>(null);
 
+  // Create new session thread
+  const handleCreateNewSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Analysis' }),
+      });
+      if (res.ok) {
+        const newMeta: SessionSummary = await res.json();
+        setSessions((prev) => [newMeta, ...prev]);
+        setActiveSessionId(newMeta.session_id);
+        setMessages([WELCOME_MESSAGE]);
+        setLastResponse(null);
+        return newMeta;
+      }
+    } catch (err) {
+      console.error('Failed to create new session:', err);
+    }
+    return null;
+  }, []);
+
   // Fetch list of all saved session threads
   const fetchSessions = useCallback(async (selectSessionId?: string) => {
     try {
@@ -66,7 +88,7 @@ export function App() {
     } catch (err) {
       console.error('Failed to fetch sessions:', err);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, handleCreateNewSession]);
 
   // Helper function to consolidate grounded source chunks across all turns in a session thread
   const aggregateThreadResponse = (
@@ -214,25 +236,7 @@ function formatMessageTimestamp(timestampStr?: string): string {
     }
   }, [activeSessionId, loadSessionDetails]);
 
-  // Create new session thread
-  const handleCreateNewSession = async () => {
-    try {
-      const res = await fetch('/api/v1/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Analysis' }),
-      });
-      if (res.ok) {
-        const newMeta: SessionSummary = await res.json();
-        setSessions((prev) => [newMeta, ...prev]);
-        setActiveSessionId(newMeta.session_id);
-        setMessages([WELCOME_MESSAGE]);
-        setLastResponse(null);
-      }
-    } catch (err) {
-      console.error('Failed to create new session:', err);
-    }
-  };
+
 
   // Rename session title
   const handleRenameSession = async (sessionId: string, newTitle: string) => {
@@ -338,7 +342,35 @@ function formatMessageTimestamp(timestampStr?: string): string {
 
   // Send message - supports concurrent background execution per session ID
   const handleSendMessage = async () => {
-    const targetSessionId = activeSessionId || 'default_session';
+    let targetSessionId = activeSessionId;
+    if (!targetSessionId && sessions.length > 0) {
+      targetSessionId = sessions[0].session_id;
+      setActiveSessionId(targetSessionId);
+    }
+
+    if (!targetSessionId) {
+      try {
+        const res = await fetch('/api/v1/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New Analysis' }),
+        });
+        if (res.ok) {
+          const newMeta: SessionSummary = await res.json();
+          targetSessionId = newMeta.session_id;
+          setSessions((prev) => [newMeta, ...prev]);
+          setActiveSessionId(targetSessionId);
+        }
+      } catch (err) {
+        console.error('Failed to create fallback session:', err);
+      }
+    }
+
+    if (!targetSessionId) {
+      targetSessionId = 'default_session';
+      setActiveSessionId(targetSessionId);
+    }
+
     if (!inputPrompt.trim() || runningSessionIds[targetSessionId]) return;
 
     const userText = inputPrompt.trim();
@@ -360,7 +392,7 @@ function formatMessageTimestamp(timestampStr?: string): string {
       return next;
     });
 
-    if (targetSessionId === activeSessionId) {
+    if (targetSessionId === activeSessionId || !activeSessionId) {
       setMessages((prev) => [...prev, userMsg]);
     }
 
@@ -393,7 +425,8 @@ function formatMessageTimestamp(timestampStr?: string): string {
       });
 
       setActiveSessionId((currentActiveId) => {
-        if (currentActiveId === targetSessionId) {
+        const activeOrTarget = currentActiveId || targetSessionId;
+        if (activeOrTarget === targetSessionId) {
           setMessages((prev) => {
             const hasUserMsg = prev.some(
               (m) => m.id === userMsg.id || (m.sender === 'user' && m.text === userText)
@@ -405,7 +438,7 @@ function formatMessageTimestamp(timestampStr?: string): string {
           });
           setLastResponse((prevResp) => aggregateThreadResponse(undefined, data, prevResp));
         }
-        return currentActiveId;
+        return activeOrTarget;
       });
 
       fetchSessions();

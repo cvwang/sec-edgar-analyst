@@ -83,4 +83,7 @@ settings = Settings()
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.gcp_project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.gcp_region)
+os.environ.setdefault("GRPC_ENABLE_FORK_SUPPORT", "0")
+os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
+
 

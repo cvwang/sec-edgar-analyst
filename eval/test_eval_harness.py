@@ -525,21 +525,21 @@ def test_multiturn_negative_isolation_leak_detection():
 
 def test_deliberate_break_session_history_wipe_catches_context_loss():
     """Deliberate-break validation test: Wiping session history before Turn 2 causes context loss, which the eval harness catches."""
-    orchestrator = RootOrchestrator()
+    controller = AppController()
     session_id = "deliberate_break_session_001"
 
     # Turn 1: Establish context for AMZN
-    t1_res = orchestrator.dispatch_query(prompt="show me amzn financial data across all years available", session_id=session_id)
+    t1_res = controller.dispatch_query(prompt="show me amzn financial data across all years available", session_id=session_id)
     assert t1_res["is_success"] is True
 
-    # Deliberate Break: Wipe session history from orchestrator session store
-    orchestrator.session_store.delete_session(session_id)
+    # Deliberate Break: Wipe session history from controller session store
+    controller.session_store.delete_session(session_id)
 
     # Turn 2: Follow-up relying on active session context ("what about 2024?")
-    t2_res = orchestrator.dispatch_query(prompt="what about 2024?", session_id=session_id)
+    t2_res = controller.dispatch_query(prompt="what about 2024?", session_id=session_id)
 
     # Without session history, the orchestrator cannot resolve AMZN from "what about 2024?", so narrative lacks AMZN or fails ticker resolution
-    turn_history_after_wipe = orchestrator.session_store.get_session_history(session_id)
+    turn_history_after_wipe = controller.session_store.get_session_history(session_id)
     # The session was reset, so history only has 1 turn (the new turn) instead of 2 accumulated turns
     assert len(turn_history_after_wipe) == 1
 

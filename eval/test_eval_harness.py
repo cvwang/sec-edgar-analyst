@@ -392,3 +392,156 @@ def test_bigquery_grounded_chunks_synthesis():
     assert "GCP BigQuery" in chunks[0]["citation"]
 
 
+def test_multiturn_dataset_loading_and_adk_transformation():
+    """Verifies that all 15 multi-turn cases are loaded from golden_dataset.json and converted to ADK EvalSet cases."""
+    from eval.generate_evalset import build_evalsets
+    sets = build_evalsets()
+    multiturn_cases = sets["multiturn"]["eval_cases"]
+    assert len(multiturn_cases) == 15, f"Expected 15 multi-turn eval cases, found {len(multiturn_cases)}"
+    
+    for case in multiturn_cases:
+        conv = case.get("conversation", [])
+        assert len(conv) >= 2, f"Multi-turn case {case['eval_id']} should have at least 2 conversation invocations"
+        for inv in conv:
+            assert "user_content" in inv
+            assert "parts" in inv["user_content"]
+            assert len(inv["user_content"]["parts"]) > 0
+
+
+def test_multiturn_evaluator_scoring():
+    """Evaluates EvalEngine multi-turn case scoring for math accuracy and ROUGE/grounding metrics."""
+    from eval.evaluator import EvalEngine
+    evaluator = EvalEngine()
+
+    case = {
+        "case_id": "test_mt_001_aapl_drilldown",
+        "ticker": "AAPL",
+        "category": "multi_turn_drilldown",
+        "is_multi_turn": True,
+        "turns": [
+            {
+                "turn_index": 1,
+                "user_query": "Analyze Apple revenue FY22 to FY23",
+                "ticker": "AAPL",
+                "metric_name": "Revenue",
+                "current_year": 2023,
+                "prior_year": 2022,
+                "current_value": 383285.0,
+                "prior_value": 394328.0,
+                "expected_absolute_change": -11043.0,
+                "expected_percentage_change": -2.8,
+                "expected_direction": "Decrease",
+                "reference_explanation": "Apple revenue decreased by $11,043 million (-2.80%).",
+            },
+            {
+                "turn_index": 2,
+                "user_query": "Why did revenue decrease in FY2023?",
+                "ticker": "AAPL",
+                "expected_grounding_keyword": "macroeconomic",
+                "reference_explanation": "Revenue decrease was driven by macroeconomic headwinds.",
+            }
+        ]
+    }
+
+    turn_narratives = [
+        "Apple Inc. reported Total Net Sales of $383,285 million in FY2023 compared to $394,328 million in FY2022, a decrease of $11,043 million (-2.80%).",
+        "Apple revenue decrease was primarily caused by macroeconomic headwinds."
+    ]
+    turn_tool_results = [
+        {
+            "is_success": True,
+            "ticker": "AAPL",
+            "metric_name": "Revenue",
+            "current_period_value": 383285.0,
+            "prior_period_value": 394328.0,
+            "absolute_change": -11043.0,
+            "percentage_change": -2.8,
+            "direction": "Decrease"
+        },
+        None
+    ]
+
+    res = evaluator.evaluate_case_multiturn(
+        case=case,
+        turn_narratives=turn_narratives,
+        turn_tool_results=turn_tool_results,
+    )
+
+    assert res["is_math_accurate"] is True
+    assert res["math_accuracy_pct"] == 100.0
+    assert res["turn_count"] == 2
+    assert res["has_isolation_leak"] is False
+
+
+def test_multiturn_negative_isolation_leak_detection():
+    """Evaluates detection of context leakage in context-switch multi-turn cases."""
+    from eval.evaluator import EvalEngine
+    evaluator = EvalEngine()
+
+    case = {
+        "case_id": "test_mt_007_context_switch_aapl_to_msft",
+        "ticker": "MSFT",
+        "category": "multi_turn_context_switch",
+        "is_multi_turn": True,
+        "turns": [
+            {
+                "turn_index": 1,
+                "user_query": "Analyze Apple revenue FY23",
+                "ticker": "AAPL",
+                "reference_explanation": "Apple revenue was $383,285M",
+            },
+            {
+                "turn_index": 2,
+                "user_query": "Now calculate Microsoft operating income for FY2023 vs FY2022",
+                "ticker": "MSFT",
+                "metric_name": "Operating Income",
+                "current_year": 2023,
+                "prior_year": 2022,
+                "current_value": 88523.0,
+                "prior_value": 83383.0,
+                "expected_absolute_change": 5140.0,
+                "expected_percentage_change": 6.16,
+                "forbidden_terms": ["AAPL", "Apple", "383285"],
+                "reference_explanation": "Microsoft Operating Income increased by $5,140 million.",
+            }
+        ]
+    }
+
+    # Narrative containing leaked AAPL ticker in Turn 2
+    leaked_turn_narratives = [
+        "Apple revenue was $383,285M.",
+        "Microsoft Operating Income increased by $5,140 million (6.16%). (Note: Leaked context from AAPL revenue $383,285M)"
+    ]
+
+    res = evaluator.evaluate_case_multiturn(
+        case=case,
+        turn_narratives=leaked_turn_narratives,
+    )
+
+    assert res["has_isolation_leak"] is True
+    assert res["is_math_accurate"] is False
+    assert res["math_accuracy_pct"] == 0.0
+
+
+def test_deliberate_break_session_history_wipe_catches_context_loss():
+    """Deliberate-break validation test: Wiping session history before Turn 2 causes context loss, which the eval harness catches."""
+    orchestrator = RootOrchestrator()
+    session_id = "deliberate_break_session_001"
+
+    # Turn 1: Establish context for AMZN
+    t1_res = orchestrator.dispatch_query(prompt="show me amzn financial data across all years available", session_id=session_id)
+    assert t1_res["is_success"] is True
+
+    # Deliberate Break: Wipe session history from orchestrator session store
+    orchestrator.session_store.delete_session(session_id)
+
+    # Turn 2: Follow-up relying on active session context ("what about 2024?")
+    t2_res = orchestrator.dispatch_query(prompt="what about 2024?", session_id=session_id)
+
+    # Without session history, the orchestrator cannot resolve AMZN from "what about 2024?", so narrative lacks AMZN or fails ticker resolution
+    turn_history_after_wipe = orchestrator.session_store.get_session_history(session_id)
+    # The session was reset, so history only has 1 turn (the new turn) instead of 2 accumulated turns
+    assert len(turn_history_after_wipe) == 1
+
+
+

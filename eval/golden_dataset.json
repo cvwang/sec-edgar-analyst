@@ -550,5 +550,545 @@
       "item_section": "Item 7 MD&A",
       "filing_date": "2024-02-21"
     }
+  },
+  {
+    "case_id": "test_mt_001_aapl_drilldown",
+    "ticker": "AAPL",
+    "secondary_ticker": null,
+    "category": "multi_turn_drilldown",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Analyze Apple revenue from fiscal year 2022 to 2023",
+        "ticker": "AAPL",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 383285.0,
+        "prior_value": 394328.0,
+        "expected_absolute_change": -11043.0,
+        "expected_percentage_change": -2.8,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Apple Inc. reported Total Net Sales of $383,285 million in FY2023 compared to $394,328 million in FY2022, representing a decrease of $11,043 million (-2.80%).",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Why did revenue decrease in FY2023?",
+        "ticker": "AAPL",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "expected_grounding_keyword": "macroeconomic",
+        "reference_explanation": "Apple's revenue decrease of $11,043 million (-2.8%) was primarily driven by macroeconomic headwinds in hardware sales and foreign exchange rate pressure.",
+        "category": "qualitative_risk"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_002_msft_drilldown",
+    "ticker": "MSFT",
+    "secondary_ticker": null,
+    "category": "multi_turn_drilldown",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "What was Microsoft operating income from FY2022 to FY2023?",
+        "ticker": "MSFT",
+        "metric_name": "Operating Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 88523.0,
+        "prior_value": 83383.0,
+        "expected_absolute_change": 5140.0,
+        "expected_percentage_change": 6.16,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft Operating Income increased by $5,140 million (6.16%) from $83,383 million in FY2022 to $88,523 million in FY2023.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What drove this increase?",
+        "ticker": "MSFT",
+        "metric_name": "Operating Income",
+        "current_year": 2023,
+        "expected_grounding_keyword": "cloud",
+        "reference_explanation": "The operating income growth of $5,140 million was driven by Intelligent Cloud expansion and Azure server efficiency gains.",
+        "category": "qualitative_risk"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_003_nvda_drilldown",
+    "ticker": "NVDA",
+    "secondary_ticker": null,
+    "category": "multi_turn_drilldown",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Analyze Nvidia revenue between FY2023 and FY2024",
+        "ticker": "NVDA",
+        "metric_name": "Revenue",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 60922.0,
+        "prior_value": 26974.0,
+        "expected_absolute_change": 33948.0,
+        "expected_percentage_change": 125.85,
+        "expected_direction": "Increase",
+        "reference_explanation": "Nvidia Corporation Revenue surged from $26,974 million in FY2023 to $60,922 million in FY2024, up $33,948 million (125.85%).",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Why did it grow so rapidly?",
+        "ticker": "NVDA",
+        "metric_name": "Revenue",
+        "current_year": 2024,
+        "expected_grounding_keyword": "Data Center",
+        "reference_explanation": "Nvidia's 125.85% revenue surge was driven by unprecedented demand for Data Center generative AI platforms like Hopper architecture.",
+        "category": "qualitative_risk"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_004_aapl_anaphora",
+    "ticker": "AAPL",
+    "secondary_ticker": null,
+    "category": "multi_turn_anaphora",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "What was Apple Net Income in FY2023?",
+        "ticker": "AAPL",
+        "metric_name": "Net Income",
+        "current_year": 2023,
+        "current_value": 96995.0,
+        "reference_explanation": "Apple Inc. Net Income reached $96,995 million in FY2023.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "And how does that compare to the prior year?",
+        "ticker": "AAPL",
+        "metric_name": "Net Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 96995.0,
+        "prior_value": 99803.0,
+        "expected_absolute_change": -2808.0,
+        "expected_percentage_change": -2.81,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Compared to FY2022 Net Income of $99,803 million, FY2023 Net Income declined by $2,808 million (-2.81%).",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_005_msft_anaphora",
+    "ticker": "MSFT",
+    "secondary_ticker": null,
+    "category": "multi_turn_anaphora",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Show me Microsoft revenue for FY2023",
+        "ticker": "MSFT",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "current_value": 211915.0,
+        "reference_explanation": "Microsoft Corporation Revenue for FY2023 was $211,915 million.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "How does it compare to prior period?",
+        "ticker": "MSFT",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 211915.0,
+        "prior_value": 198270.0,
+        "expected_absolute_change": 13645.0,
+        "expected_percentage_change": 6.88,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft FY2023 revenue of $211,915 million increased by $13,645 million (6.88%) over FY2022 revenue of $198,270 million.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_006_nvda_anaphora",
+    "ticker": "NVDA",
+    "secondary_ticker": null,
+    "category": "multi_turn_anaphora",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Check Nvidia net income in FY2024",
+        "ticker": "NVDA",
+        "metric_name": "Net Income",
+        "current_year": 2024,
+        "current_value": 29760.0,
+        "reference_explanation": "Nvidia Net Income reached $29,760 million in FY2024.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What was the percentage change compared to prior year?",
+        "ticker": "NVDA",
+        "metric_name": "Net Income",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 29760.0,
+        "prior_value": 4368.0,
+        "expected_absolute_change": 25392.0,
+        "expected_percentage_change": 581.32,
+        "expected_direction": "Increase",
+        "reference_explanation": "Nvidia Net Income surged 581.32% (an increase of $25,392 million) from $4,368 million in FY2023 to $29,760 million in FY2024.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_007_context_switch_aapl_to_msft",
+    "ticker": "MSFT",
+    "secondary_ticker": "AAPL",
+    "category": "multi_turn_context_switch",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Analyze Apple FY2023 revenue vs FY2022",
+        "ticker": "AAPL",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 383285.0,
+        "prior_value": 394328.0,
+        "expected_absolute_change": -11043.0,
+        "expected_percentage_change": -2.8,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Apple Inc. revenue decreased by $11,043 million (-2.8%) from $394,328M to $383,285M.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Now calculate Microsoft operating income for FY2023 vs FY2022",
+        "ticker": "MSFT",
+        "metric_name": "Operating Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 88523.0,
+        "prior_value": 83383.0,
+        "expected_absolute_change": 5140.0,
+        "expected_percentage_change": 6.16,
+        "expected_direction": "Increase",
+        "forbidden_terms": [
+          "AAPL",
+          "Apple",
+          "383285",
+          "394328"
+        ],
+        "reference_explanation": "Microsoft Operating Income increased by $5,140 million (6.16%) from $83,383 million in FY2022 to $88,523 million in FY2023.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_008_context_switch_msft_to_nvda",
+    "ticker": "NVDA",
+    "secondary_ticker": "MSFT",
+    "category": "multi_turn_context_switch",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "What was Microsoft revenue in FY2023 vs FY2022?",
+        "ticker": "MSFT",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 211915.0,
+        "prior_value": 198270.0,
+        "expected_absolute_change": 13645.0,
+        "expected_percentage_change": 6.88,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft Revenue grew by $13,645 million (6.88%) to $211,915 million.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What about Nvidia revenue in FY2024 vs FY2023?",
+        "ticker": "NVDA",
+        "metric_name": "Revenue",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 60922.0,
+        "prior_value": 26974.0,
+        "expected_absolute_change": 33948.0,
+        "expected_percentage_change": 125.85,
+        "expected_direction": "Increase",
+        "forbidden_terms": [
+          "MSFT",
+          "Microsoft",
+          "211915",
+          "198270"
+        ],
+        "reference_explanation": "Nvidia Revenue grew by $33,948 million (125.85%) to $60,922 million in FY2024.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_009_context_switch_nvda_to_aapl",
+    "ticker": "AAPL",
+    "secondary_ticker": "NVDA",
+    "category": "multi_turn_context_switch",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Explain Nvidia risk factors for 2024",
+        "ticker": "NVDA",
+        "current_year": 2024,
+        "expected_grounding_keyword": "supply chain",
+        "reference_explanation": "Nvidia 2024 Item 1A disclosures highlight AI chip supply chain constraints and export controls.",
+        "category": "qualitative_risk"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Summarize Apple risk factors for 2023",
+        "ticker": "AAPL",
+        "current_year": 2023,
+        "expected_grounding_keyword": "headwinds",
+        "forbidden_terms": [
+          "NVDA",
+          "Nvidia",
+          "Hopper",
+          "GPU"
+        ],
+        "reference_explanation": "Apple 2023 Item 1A disclosures emphasize global economic uncertainty, component supply chain risks, and regulatory compliance.",
+        "category": "qualitative_risk"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_010_clarification_aapl",
+    "ticker": "AAPL",
+    "secondary_ticker": null,
+    "category": "multi_turn_clarification",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Analyze Apple financial variance",
+        "ticker": "AAPL",
+        "is_clarification_request": true,
+        "reference_explanation": "Which financial metric and fiscal year range would you like me to analyze for Apple (e.g., Revenue for FY2022 to FY2023)?",
+        "category": "clarification"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Revenue for FY2022 to FY2023",
+        "ticker": "AAPL",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 383285.0,
+        "prior_value": 394328.0,
+        "expected_absolute_change": -11043.0,
+        "expected_percentage_change": -2.8,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Apple Inc. reported Total Net Sales of $383,285 million in FY2023 compared to $394,328 million in FY2022, representing a decrease of $11,043 million (-2.80%).",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_011_clarification_msft",
+    "ticker": "MSFT",
+    "secondary_ticker": null,
+    "category": "multi_turn_clarification",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Show Microsoft numbers",
+        "ticker": "MSFT",
+        "is_clarification_request": true,
+        "reference_explanation": "Please specify which metric (e.g. Revenue, Operating Income) and fiscal year range you would like to inspect for Microsoft.",
+        "category": "clarification"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Operating Income from FY2022 to FY2023",
+        "ticker": "MSFT",
+        "metric_name": "Operating Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 88523.0,
+        "prior_value": 83383.0,
+        "expected_absolute_change": 5140.0,
+        "expected_percentage_change": 6.16,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft Operating Income increased by $5,140 million (6.16%) from $83,383 million in FY2022 to $88,523 million in FY2023.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_012_clarification_nvda",
+    "ticker": "NVDA",
+    "secondary_ticker": null,
+    "category": "multi_turn_clarification",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Nvidia financial performance",
+        "ticker": "NVDA",
+        "is_clarification_request": true,
+        "reference_explanation": "Could you specify the metric (e.g., Revenue, Net Income) and fiscal year comparison for Nvidia?",
+        "category": "clarification"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "Revenue for FY2023 to FY2024",
+        "ticker": "NVDA",
+        "metric_name": "Revenue",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 60922.0,
+        "prior_value": 26974.0,
+        "expected_absolute_change": 33948.0,
+        "expected_percentage_change": 125.85,
+        "expected_direction": "Increase",
+        "reference_explanation": "Nvidia Revenue grew from $26,974 million in FY2023 to $60,922 million in FY2024, an increase of $33,948 million (125.85%).",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_013_multimetric_aapl",
+    "ticker": "AAPL",
+    "secondary_ticker": null,
+    "category": "multi_turn_multimetric",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Analyze Apple revenue from FY2022 to FY2023",
+        "ticker": "AAPL",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 383285.0,
+        "prior_value": 394328.0,
+        "expected_absolute_change": -11043.0,
+        "expected_percentage_change": -2.8,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Apple Revenue decreased by $11,043 million (-2.8%) from $394,328M to $383,285M.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What about net income for the same period?",
+        "ticker": "AAPL",
+        "metric_name": "Net Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 96995.0,
+        "prior_value": 99803.0,
+        "expected_absolute_change": -2808.0,
+        "expected_percentage_change": -2.81,
+        "expected_direction": "Decrease",
+        "reference_explanation": "Apple FY2023 Net Income reached $96,995 million compared to $99,803 million in FY2022, down $2,808 million (-2.81%).",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_014_multimetric_msft",
+    "ticker": "MSFT",
+    "secondary_ticker": null,
+    "category": "multi_turn_multimetric",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "What was Microsoft revenue change from FY2022 to FY2023?",
+        "ticker": "MSFT",
+        "metric_name": "Revenue",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 211915.0,
+        "prior_value": 198270.0,
+        "expected_absolute_change": 13645.0,
+        "expected_percentage_change": 6.88,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft Revenue grew $13,645 million (6.88%) to $211,915 million.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What about operating income for the same period?",
+        "ticker": "MSFT",
+        "metric_name": "Operating Income",
+        "current_year": 2023,
+        "prior_year": 2022,
+        "current_value": 88523.0,
+        "prior_value": 83383.0,
+        "expected_absolute_change": 5140.0,
+        "expected_percentage_change": 6.16,
+        "expected_direction": "Increase",
+        "reference_explanation": "Microsoft Operating Income increased by $5,140 million (6.16%) to $88,523 million in FY2023.",
+        "category": "quantitative_variance"
+      }
+    ]
+  },
+  {
+    "case_id": "test_mt_015_multimetric_nvda",
+    "ticker": "NVDA",
+    "secondary_ticker": null,
+    "category": "multi_turn_multimetric",
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn_index": 1,
+        "user_query": "Calculate Nvidia operating income from FY2023 to FY2024",
+        "ticker": "NVDA",
+        "metric_name": "Operating Income",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 32972.0,
+        "prior_value": 4224.0,
+        "expected_absolute_change": 28748.0,
+        "expected_percentage_change": 680.59,
+        "expected_direction": "Increase",
+        "reference_explanation": "Nvidia Operating Income surged 680.59% (+$28,748 million) to $32,972 million in FY2024.",
+        "category": "quantitative_variance"
+      },
+      {
+        "turn_index": 2,
+        "user_query": "What about revenue for the same period?",
+        "ticker": "NVDA",
+        "metric_name": "Revenue",
+        "current_year": 2024,
+        "prior_year": 2023,
+        "current_value": 60922.0,
+        "prior_value": 26974.0,
+        "expected_absolute_change": 33948.0,
+        "expected_percentage_change": 125.85,
+        "expected_direction": "Increase",
+        "reference_explanation": "Nvidia Revenue grew from $26,974 million to $60,922 million (up $33,948 million or 125.85%).",
+        "category": "quantitative_variance"
+      }
+    ]
   }
 ]

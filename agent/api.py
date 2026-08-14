@@ -153,8 +153,12 @@ def get_financial_metrics(ticker: str, start_year: str, end_year: str):
         e_yr = int(end_year)
         ticker_clean = ticker.strip().upper()
 
-        start_m = _get_metrics_for_year(ticker_clean, s_yr)
-        end_m = _get_metrics_for_year(ticker_clean, e_yr)
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            fut_start = executor.submit(_get_metrics_for_year, ticker_clean, s_yr)
+            fut_end = executor.submit(_get_metrics_for_year, ticker_clean, e_yr)
+            start_m = fut_start.result()
+            end_m = fut_end.result()
 
         start_rev = start_m["revenue"]
         start_op = start_m["operating_income"]

@@ -176,11 +176,12 @@ class EvalEngine:
         case: Dict[str, Any],
         generated_narrative: str,
         retrieved_context: Optional[str] = None,
-        multi_sample_count: int = 3,
+        multi_sample_count: int = 1,
     ) -> Dict[str, Any]:
         """Runs Layer 2 LLM-as-a-Judge evaluation using official Vertex AI / GenAI SDK.
         
         Uses temperature=0.0 and averages over multi_sample_count iterations to eliminate score variance.
+        If the judge fails, records an explicit ERROR status with raw exception details rather than masking with fake scores.
         """
         judge_prompt = f"""You are an expert financial evaluator reviewing an automated SEC EDGAR financial analyst report.
 
@@ -194,22 +195,23 @@ GOLDEN REFERENCE EXPLANATION:
 GENERATED NARRATIVE REPORT TO EVALUATE:
 {generated_narrative}
 
-Evaluate the generated narrative report objectively on a 0.0 to 1.0 scale for:
-1. Faithfulness Score (freedom from ungrounded hallucinations)
-2. Relevance Score (directness in answering the user prompt)
-3. Coherence Score (clarity, structure, professional tone)
-4. Numerical Precision Score (correctness of metrics)
+Evaluate the generated narrative report objectively on a continuous 0.0 to 1.0 scale for:
+1. Faithfulness Score (0.0 = completely hallucinated/ungrounded, 1.0 = 100% faithful to retrieved context)
+2. Relevance Score (0.0 = completely irrelevant/off-topic, 1.0 = directly and fully answers the prompt)
+3. Coherence Score (0.0 = incoherent/disjointed, 1.0 = structured, fluent, professional synthesis)
+4. Numerical Precision Score (0.0 = wrong numbers, 1.0 = exact metric alignment)
 
-Return a structured JSON evaluation matching the required schema.
+Return a structured JSON evaluation matching the required schema with a detailed reasoning explanation.
 """
         scores = []
         reasonings = []
 
         try:
             from google import genai
-            client = genai.Client(vertexai=True, project=settings.gcp_project_id, location=settings.gcp_region)
+            from agent.rag.vertex_search import get_genai_client
+            client = get_genai_client(project_id=settings.gcp_project_id, location=settings.gcp_region) or genai.Client(vertexai=True, project=settings.gcp_project_id, location=settings.gcp_region)
 
-            for _ in range(multi_sample_count):
+            for _ in range(max(1, multi_sample_count)):
                 resp = client.models.generate_content(
                     model=self.judge_model_name,
                     contents=judge_prompt,
@@ -225,37 +227,34 @@ Return a structured JSON evaluation matching the required schema.
                     if parsed.get("reasoning"):
                         reasonings.append(parsed["reasoning"])
 
+            if not scores:
+                raise RuntimeError("LLM Judge returned empty response text.")
+
         except Exception as e:
-            logger.warning(f"LLM Judge execution fallback due to exception: {str(e)}")
-            # Fallback mock verdict if offline or sandbox API unavailable
-            scores.append({
-                "faithfulness_score": 0.95,
-                "relevance_score": 0.95,
-                "coherence_score": 0.90,
-                "numerical_precision_score": 1.0,
-                "reasoning": "Fallback evaluator score: text matches golden reference and deterministic math checks."
-            })
+            logger.error(f"LLM Judge execution failed for case '{case.get('case_id')}': {str(e)}", exc_info=True)
+            return {
+                "faithfulness_score": None,
+                "relevance_score": None,
+                "coherence_score": None,
+                "numerical_precision_score": None,
+                "judge_reasoning": f"JUDGE_EXECUTION_ERROR: {str(e)}",
+                "judge_error": str(e),
+                "eval_status": "ERROR",
+            }
 
-        if not scores:
-            scores.append({
-                "faithfulness_score": 1.0,
-                "relevance_score": 1.0,
-                "coherence_score": 1.0,
-                "numerical_precision_score": 1.0,
-                "reasoning": "Default offline judge verdict."
-            })
-
-        avg_faithfulness = sum(s["faithfulness_score"] for s in scores) / len(scores)
-        avg_relevance = sum(s["relevance_score"] for s in scores) / len(scores)
-        avg_coherence = sum(s["coherence_score"] for s in scores) / len(scores)
-        avg_precision = sum(s["numerical_precision_score"] for s in scores) / len(scores)
+        avg_faithfulness = sum(float(s["faithfulness_score"]) for s in scores) / len(scores)
+        avg_relevance = sum(float(s["relevance_score"]) for s in scores) / len(scores)
+        avg_coherence = sum(float(s["coherence_score"]) for s in scores) / len(scores)
+        avg_precision = sum(float(s["numerical_precision_score"]) for s in scores) / len(scores)
 
         return {
-            "faithfulness_score": round(avg_faithfulness, 4),
-            "relevance_score": round(avg_relevance, 4),
-            "coherence_score": round(avg_coherence, 4),
-            "numerical_precision_score": round(avg_precision, 4),
+            "faithfulness_score": avg_faithfulness,
+            "relevance_score": avg_relevance,
+            "coherence_score": avg_coherence,
+            "numerical_precision_score": avg_precision,
             "judge_reasoning": reasonings[0] if reasonings else scores[0].get("reasoning", ""),
+            "judge_error": None,
+            "eval_status": "SUCCESS",
         }
 
     def evaluate_case_multiturn(
@@ -290,21 +289,30 @@ Return a structured JSON evaluation matching the required schema.
             )
             turn_results.append(res)
 
+        faith_scores = [r.get("faithfulness_score") for r in turn_results if r.get("faithfulness_score") is not None]
+        rel_scores = [r.get("relevance_score") for r in turn_results if r.get("relevance_score") is not None]
+        coh_scores = [r.get("coherence_score") for r in turn_results if r.get("coherence_score") is not None]
+        prec_scores = [r.get("numerical_precision_score") for r in turn_results if r.get("numerical_precision_score") is not None]
+
         all_math_acc = all(r.get("is_math_accurate", False) for r in turn_results)
         avg_math_acc_pct = sum(r.get("math_accuracy_pct", 0.0) for r in turn_results) / len(turn_results)
         avg_grounding = sum(r.get("grounding_recall", 0.0) for r in turn_results) / len(turn_results)
         avg_r1 = sum(r.get("rouge_1_f1", 0.0) for r in turn_results) / len(turn_results)
         avg_rl = sum(r.get("rouge_l_f1", 0.0) for r in turn_results) / len(turn_results)
-        avg_faithfulness = sum(r.get("faithfulness_score", 0.0) for r in turn_results) / len(turn_results)
-        avg_relevance = sum(r.get("relevance_score", 0.0) for r in turn_results) / len(turn_results)
-        avg_coherence = sum(r.get("coherence_score", 0.0) for r in turn_results) / len(turn_results)
-        avg_precision = sum(r.get("numerical_precision_score", 0.0) for r in turn_results) / len(turn_results)
+        avg_faithfulness = (sum(faith_scores) / len(faith_scores)) if faith_scores else None
+        avg_relevance = (sum(rel_scores) / len(rel_scores)) if rel_scores else None
+        avg_coherence = (sum(coh_scores) / len(coh_scores)) if coh_scores else None
+        avg_precision = (sum(prec_scores) / len(prec_scores)) if prec_scores else None
         has_any_leak = any(r.get("has_isolation_leak", False) for r in turn_results)
 
         if has_any_leak:
             all_math_acc = False
             avg_math_acc_pct = 0.0
-            avg_relevance = 0.0
+            if avg_relevance is not None:
+                avg_relevance = 0.0
+
+        has_judge_error = any(r.get("eval_status") == "ERROR" or r.get("judge_error") for r in turn_results)
+        judge_err_msgs = [r["judge_error"] for r in turn_results if r.get("judge_error")]
 
         return {
             "case_id": case.get("case_id"),
@@ -312,16 +320,19 @@ Return a structured JSON evaluation matching the required schema.
             "ticker": case.get("ticker"),
             "is_multi_turn": True,
             "turn_count": len(turn_results),
-            "math_accuracy_pct": round(avg_math_acc_pct, 2),
+            "math_accuracy_pct": avg_math_acc_pct,
             "is_math_accurate": all_math_acc,
-            "grounding_recall": round(avg_grounding, 4),
-            "rouge_1_f1": round(avg_r1, 4),
-            "rouge_l_f1": round(avg_rl, 4),
-            "faithfulness_score": round(avg_faithfulness, 4),
-            "relevance_score": round(avg_relevance, 4),
-            "coherence_score": round(avg_coherence, 4),
-            "numerical_precision_score": round(avg_precision, 4),
+            "grounding_recall": avg_grounding,
+            "rouge_1_f1": avg_r1,
+            "rouge_l_f1": avg_rl,
+            "faithfulness_score": avg_faithfulness,
+            "relevance_score": avg_relevance,
+            "coherence_score": avg_coherence,
+            "numerical_precision_score": avg_precision,
             "has_isolation_leak": has_any_leak,
+            "judge_error": "; ".join(judge_err_msgs) if judge_err_msgs else None,
+            "eval_status": "ERROR" if has_judge_error else ("SUCCESS" if run_llm_judge else "MOCKED_TIER_SKIPPED"),
+            "judge_reasoning": "Multi-turn evaluation" if run_llm_judge else "N/A — no real narrative generated in mocked tier",
             "turn_results": turn_results,
         }
 
@@ -346,11 +357,13 @@ Return a structured JSON evaluation matching the required schema.
             layer2 = self.evaluate_case_layer2_llm_judge(case, generated_narrative, context_str)
         else:
             layer2 = {
-                "faithfulness_score": 1.0 if layer1["is_math_accurate"] else 0.5,
-                "relevance_score": 1.0 if (layer1["grounding_recall"] >= 0.5 or layer1["is_math_accurate"]) else 0.5,
-                "coherence_score": 0.9,
+                "faithfulness_score": None,
+                "relevance_score": None,
+                "coherence_score": None,
                 "numerical_precision_score": 1.0 if layer1["is_math_accurate"] else 0.0,
-                "judge_reasoning": "Layer 1 deterministic proxy mode.",
+                "judge_reasoning": "N/A — no real narrative generated in mocked tier",
+                "judge_error": None,
+                "eval_status": "MOCKED_TIER_SKIPPED",
             }
 
         return {

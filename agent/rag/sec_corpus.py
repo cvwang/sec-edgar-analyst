@@ -163,13 +163,13 @@ def annotate_grounded_highlights_with_llm(chunks: List[dict], narrative: str, cl
     if not chunks or not narrative:
         return chunks
 
-    import concurrent.futures
-
     try:
+        import concurrent.futures
         from google import genai
         from agent.config import settings
+        from agent.rag.vertex_search import get_genai_client
 
-        client = genai.Client()
+        client = get_genai_client() or genai.Client()
         fast_model = getattr(settings, "fast_model", "gemini-2.5-flash")
 
         # Format claims with citation IDs if provided
@@ -344,10 +344,13 @@ def clean_sec_document_text(raw_text: str) -> str:
 
     # If raw_text contains HTML tags, run SEC10KHTMLToMarkdownParser first
     if "<table" in raw_text.lower() or "<div" in raw_text.lower() or "<p>" in raw_text.lower():
-        from scripts.fetch_real_unabridged_sec_filings import SEC10KHTMLToMarkdownParser
-        parser = SEC10KHTMLToMarkdownParser()
-        parser.feed(raw_text)
-        text = parser.get_markdown()
+        try:
+            from scripts.fetch_real_unabridged_sec_filings import SEC10KHTMLToMarkdownParser
+            parser = SEC10KHTMLToMarkdownParser()
+            parser.feed(raw_text)
+            text = parser.get_markdown()
+        except Exception:
+            text = raw_text
     else:
         text = raw_text
 
@@ -396,8 +399,11 @@ def clean_sec_document_text(raw_text: str) -> str:
     text = '\n'.join(processed_lines)
 
     # 6. Fix Mojibake encoding artifacts (â€™, â€œ, â€¢, â„¢) & normalize quotes
-    from scripts.fetch_real_unabridged_sec_filings import fix_sec_mojibake_encoding
-    text = fix_sec_mojibake_encoding(text)
+    try:
+        from scripts.fetch_real_unabridged_sec_filings import fix_sec_mojibake_encoding
+        text = fix_sec_mojibake_encoding(text)
+    except Exception:
+        text = text.replace("â€™", "'").replace("â€œ", '"').replace("â€", '"').replace("â€¢", "•")
     return text.strip()
 
 

@@ -23,6 +23,28 @@ class VertexSearchResult(BaseModel):
     relevance_score: float = 1.0
 
 
+_SHARED_GENAI_CLIENT: Optional[genai.Client] = None
+
+
+def get_genai_client(
+    project_id: Optional[str] = None,
+    location: Optional[str] = None,
+) -> Optional[genai.Client]:
+    """Returns a process-level singleton genai.Client instance configured for Vertex AI."""
+    global _SHARED_GENAI_CLIENT
+    if _SHARED_GENAI_CLIENT is None:
+        try:
+            _SHARED_GENAI_CLIENT = genai.Client(
+                vertexai=True,
+                project=project_id or settings.gcp_project_id,
+                location=location or settings.gcp_region,
+            )
+        except Exception as e:
+            log_tool_execution("vertex_ai_search_init", "outcome", {"error": str(e)}, status="ERROR")
+            return None
+    return _SHARED_GENAI_CLIENT
+
+
 class VertexAISearchClient:
     """Native ADK / Google GenAI SDK Client for querying GCP Vertex AI Search DataStores."""
 
@@ -31,26 +53,19 @@ class VertexAISearchClient:
         project_id: Optional[str] = None,
         datastore_id: str = "sec-10k-filings-datastore",
         location: Optional[str] = None,
+        client: Optional[genai.Client] = None,
     ):
         self.project_id = project_id or settings.gcp_project_id
         self.datastore_id = datastore_id
         self.location = location or settings.gcp_region
-        self.client = self._init_client()
+        self.client = client or get_genai_client(self.project_id, self.location)
         self.datastore_path = (
             f"projects/{self.project_id}/locations/global/collections/default_collection/dataStores/{self.datastore_id}"
         )
 
     def _init_client(self) -> Optional[genai.Client]:
-        """Initializes Native GenAI Client with Vertex AI."""
-        try:
-            return genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.location,
-            )
-        except Exception as e:
-            log_tool_execution("vertex_ai_search_init", "outcome", {"error": str(e)}, status="ERROR")
-            return None
+        """Initializes Native GenAI Client with Vertex AI (delegates to get_genai_client)."""
+        return get_genai_client(self.project_id, self.location)
 
     def search_filings(
         self,

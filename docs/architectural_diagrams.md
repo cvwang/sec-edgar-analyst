@@ -488,3 +488,65 @@ flowchart TD
     User2 --> AppCtrl2 --> ContextExtractor --> ContextInject --> Orch2 --> Resp2
 ```
 
+---
+
+## Diagram 7: End-to-End Data Ingestion & Vertex AI Hybrid Search Architecture (PRES-02)
+
+```mermaid
+flowchart TD
+    subgraph RawSources ["1. SEC EDGAR Raw Ingestion"]
+        SEC["SEC EDGAR System / SEC API<br/>• Form 10-K (Annual Disclosures)<br/>• Form 10-Q (Quarterly Reports)<br/>• XBRL & HTML Filings"]
+        Trigger["Eventarc / GCS Event Trigger<br/>(Automated Ingestion Pipeline)"]
+        GCS_Raw[("GCS Raw Filing Bucket<br/>gs://sec-analyst-raw-filings/<br/>(Immutable Archive)")]
+    end
+
+    subgraph ParsingStage ["2. Parsing, Normalization & Chunking"]
+        DocAI["Document AI & Parsing Engine<br/>• HTML/XBRL Tag Stripping<br/>• Financial Statement Table Extraction<br/>• Markdown Section Preserver"]
+        Chunker["Semantic & Structural Chunker<br/>• Item 1A: Risk Factors<br/>• Item 7: MD&A<br/>• Preserves Section Headers & Footnotes"]
+    end
+
+    subgraph DualStore ["3. Dual-Path Storage Foundation"]
+        BQ_Store[("BigQuery Golden Tables<br/>sec_financial_metrics<br/>• Revenue, OpInc, NetInc, EPS<br/>• Ticker & FY Partitioned")]
+        GCS_Processed[("GCS Processed Chunks<br/>gs://sec-analyst-processed-chunks/<br/>(Chunked JSON & Clean MD)")]
+    end
+
+    subgraph HybridEngine ["4. Vertex AI Search Hybrid Indexing & Retrieval Engine"]
+        subgraph Indexing ["Dual-Index Creation"]
+            DenseEmbed["Dense Embedding Engine<br/>(text-embedding-004)<br/>• 768-dim Semantic Vectors"]
+            SparseIndex["Sparse Lexical Engine<br/>(BM25 Inverted Index)<br/>• Exact Financial Term Matching"]
+        end
+        
+        VertexDataStore[("Vertex AI Search Datastore<br/>sec-10k-datastore<br/>(Hybrid Search Enabled)")]
+        
+        subgraph QueryRuntime ["Runtime Hybrid Retrieval"]
+            QueryFormulate["Query Formulator<br/>(Ticker + FY Metadata Anchored)"]
+            DenseMatch["Vector Semantic Search<br/>(High Recall)"]
+            SparseMatch["BM25 Keyword Search<br/>(Exact Financial Terms)"]
+            RRF["Reciprocal Rank Fusion (RRF)<br/>& Semantic Reranking Engine"]
+        end
+    end
+
+    subgraph AgentServing ["5. Real-Time Agent Serving Tier"]
+        SearchAgent["10-K Search Subagent<br/>(ADK LlmAgent / AgentTool)"]
+        GroundedOutput["Grounded 10-K Citations<br/>• Verbatim Snippets<br/>• Deep-Linked GCS URIs<br/>• Highlighted <mark> Passages"]
+    end
+
+    SEC --> Trigger --> GCS_Raw
+    GCS_Raw --> DocAI
+    DocAI -->|Structured Financial Tables| BQ_Store
+    DocAI -->|Unstructured Narrative Text| Chunker
+    Chunker --> GCS_Processed
+
+    GCS_Processed --> DenseEmbed --> VertexDataStore
+    GCS_Processed --> SparseIndex --> VertexDataStore
+
+    SearchAgent --> QueryFormulate
+    QueryFormulate --> DenseMatch & SparseMatch
+    DenseMatch --> VertexDataStore
+    SparseMatch --> VertexDataStore
+    VertexDataStore --> RRF
+    RRF --> GroundedOutput
+    GroundedOutput --> SearchAgent
+```
+
+

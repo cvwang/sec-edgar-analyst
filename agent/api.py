@@ -207,10 +207,12 @@ def get_peer_metrics(ticker: str, peer_ticker: str, year: str):
     try:
         yr_i = int(year)
         t1_u = ticker.strip().upper()
-        t2_u = peer_ticker.strip().upper()
-
-        m1 = _get_metrics_for_year(t1_u, yr_i)
-        m2 = _get_metrics_for_year(t2_u, yr_i)
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            fut1 = executor.submit(_get_metrics_for_year, t1_u, yr_i)
+            fut2 = executor.submit(_get_metrics_for_year, t2_u, yr_i)
+            m1 = fut1.result()
+            m2 = fut2.result()
 
         rev1, rev2 = m1["revenue"], m2["revenue"]
         op1, op2 = m1["operating_income"], m2["operating_income"]

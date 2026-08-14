@@ -12,7 +12,19 @@ GOLDEN_DATASET_PATH = os.path.join(os.path.dirname(__file__), "golden_dataset.js
 EVALSETS_DIR = os.path.join(os.path.dirname(__file__), "evalsets")
 EVALSET_FILE_PATH = os.path.join(EVALSETS_DIR, "sec_edgar_analyst_master.evalset.json")
 MULTITURN_EVALSET_PATH = os.path.join(EVALSETS_DIR, "multiturn_revenue_variance.evalset.json")
+CAPSTONE_EVALSET_PATH = os.path.join(EVALSETS_DIR, "capstone_demo.evalset.json")
 TEST_CONFIG_FILE_PATH = os.path.join(EVALSETS_DIR, "test_config.json")
+
+CAPSTONE_DEMO_CASE_IDS = [
+    "test_001_aapl_revenue",
+    "test_004_msft_operating_income",
+    "test_011_tsla_revenue",
+    "test_013_meta_risk_factors",
+    "test_014_tsla_risk_factors",
+    "test_015_aapl_msft_peer_comparison",
+    "test_016_nvda_amzn_peer_comparison",
+    "test_022_edge_model_armor_pii_injection",
+]
 
 
 def generate_natural_query(case: Dict[str, Any]) -> str:
@@ -155,6 +167,7 @@ def build_adk_evalsets() -> Dict[str, EvalSet]:
 
     master_eval_cases: List[EvalCase] = []
     multiturn_eval_cases: List[EvalCase] = []
+    capstone_eval_cases: List[EvalCase] = []
 
     for case in golden_data:
         invs = build_case_invocations(case)
@@ -166,6 +179,8 @@ def build_adk_evalsets() -> Dict[str, EvalSet]:
         master_eval_cases.append(case_entry)
         if case.get("is_multi_turn"):
             multiturn_eval_cases.append(case_entry)
+        if case["case_id"] in CAPSTONE_DEMO_CASE_IDS:
+            capstone_eval_cases.append(case_entry)
 
     return {
         "master": EvalSet(
@@ -179,6 +194,12 @@ def build_adk_evalsets() -> Dict[str, EvalSet]:
             name="SEC EDGAR Natural Language Analyst Multi-Turn Evaluation Suite",
             creation_timestamp=0.0,
             eval_cases=multiturn_eval_cases,
+        ),
+        "capstone": EvalSet(
+            eval_set_id="capstone_demo_v1",
+            name="SEC EDGAR Natural Language Analyst Capstone Demo Golden Set",
+            creation_timestamp=0.0,
+            eval_cases=capstone_eval_cases,
         ),
     }
 
@@ -203,6 +224,9 @@ def main():
     with open(MULTITURN_EVALSET_PATH, "w") as f:
         json.dump(sets["multiturn"].model_dump(mode="json", exclude_none=True), f, indent=2)
 
+    with open(CAPSTONE_EVALSET_PATH, "w") as f:
+        json.dump(sets["capstone"].model_dump(mode="json", exclude_none=True), f, indent=2)
+
     test_config_data = {
         "criteria": {
             "tool_trajectory_avg_score": 1.0,
@@ -214,6 +238,7 @@ def main():
 
     print(f"Generated {len(sets['master'].eval_cases)} master ADK eval cases into {EVALSET_FILE_PATH}")
     print(f"Generated {len(sets['multiturn'].eval_cases)} multi-turn ADK eval cases into {MULTITURN_EVALSET_PATH}")
+    print(f"Generated {len(sets['capstone'].eval_cases)} capstone demo ADK eval cases into {CAPSTONE_EVALSET_PATH}")
     print(f"Created test config at {TEST_CONFIG_FILE_PATH}")
 
 

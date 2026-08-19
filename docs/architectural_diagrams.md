@@ -21,7 +21,7 @@ flowchart TD
 
     RootOrchestrator["ADK Root Orchestrator (Gemini 2.5 Pro / Flash)<br/>📜 Enforces System Constitution & Math Lock"]
     Observability["Observability Core<br/>(BigQuery Telemetry & Cost Tracker)"]
-    ModelArmor["Security Perimeter<br/>(Model Armor Guardrail)"]
+    ModelArmor["Security<br/>(Model Armor Guardrail)"]
 
     BQTool["BigQuery SQL Tool<br/>(Audited Financials)"]
     MathTool["Variance Math Engine<br/>(YoY % Calculations)"]

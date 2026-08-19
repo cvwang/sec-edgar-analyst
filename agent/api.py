@@ -211,6 +211,7 @@ def get_peer_metrics(ticker: str, peer_ticker: str, year: str):
     try:
         yr_i = int(year)
         t1_u = ticker.strip().upper()
+        t2_u = peer_ticker.strip().upper()
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             fut1 = executor.submit(_get_metrics_for_year, t1_u, yr_i)

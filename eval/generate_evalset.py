@@ -229,8 +229,11 @@ def main():
 
     test_config_data = {
         "criteria": {
-            "tool_trajectory_avg_score": 1.0,
-            "response_match_score": 0.5,
+            "tool_trajectory_avg_score": {
+                "threshold": 1.0,
+                "match_type": "IN_ORDER",
+            },
+            "response_match_score": 0.04,
         }
     }
     with open(TEST_CONFIG_FILE_PATH, "w") as f:

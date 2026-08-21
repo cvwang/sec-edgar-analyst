@@ -1,11 +1,15 @@
 """Parallelized Google ADK Evaluation Runner.
 
 Executes official ADK EvalSets (sec_edgar_analyst_master.evalset.json) with configurable
-parallelism, live streaming progress, and formatted summary reporting.
+parallelism, live streaming progress, multi-metric evaluation (Trajectory, ROUGE, and LLM-as-a-Judge),
+and formatted summary reporting.
 """
 
 import os
 import sys
+
+# Ensure repository root is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import json
 import time
 import asyncio
@@ -33,19 +37,30 @@ from google.adk.evaluation.metric_evaluator_registry import register_custom_metr
 from google.adk.evaluation.simulation.user_simulator_provider import UserSimulatorProvider
 from google.adk.evaluation.eval_result import EvalStatus, EvalCaseResult
 from google.genai import types
-from agent.rag.vertex_search import VertexSearchResult
-from agent.rag.bigquery_store import FinancialMetricRecord
-from agent.guardrails.model_armor import ModelArmorResult
+
+from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator
 from agent.root_orchestrator import root_agent
 from agent.config import settings
 
-from eval.run_benchmark import (
+from eval.mocks import (
     mock_search_filings_boundary,
     mock_query_metrics_boundary,
     mock_sanitize_user_prompt,
     mock_sanitize_model_response,
     make_mock_credentials,
+    parallel_mock_genai_generate_content,
+    load_golden_dataset,
+    RobustAutoRaterResponseParser,
 )
+
+# Patch RubricBasedFinalResponseQualityV1Evaluator to use RobustAutoRaterResponseParser
+_orig_rfrq_init = RubricBasedFinalResponseQualityV1Evaluator.__init__
+
+def _robust_rfrq_init(self, eval_metric):
+  _orig_rfrq_init(self, eval_metric)
+  self._auto_rater_response_parser = RobustAutoRaterResponseParser()
+
+RubricBasedFinalResponseQualityV1Evaluator.__init__ = _robust_rfrq_init
 
 logger = logging.getLogger(__name__)
 
@@ -61,137 +76,11 @@ GOLDEN_DATASET_PATH = os.path.join(
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
-def load_golden_dataset() -> List[Dict[str, Any]]:
-  with open(GOLDEN_DATASET_PATH, "r", encoding="utf-8") as f:
-    return json.load(f)
-
-
 def load_eval_set(eval_set_path: str) -> EvalSet:
   """Loads ADK EvalSet from JSON file."""
   with open(eval_set_path, "r", encoding="utf-8") as f:
     data = json.load(f)
   return EvalSet.model_validate(data)
-
-
-# Build lookup index for thread-safe concurrent prompt matching
-_DATASET = load_golden_dataset()
-_PROMPT_TO_CASE_MAP: Dict[str, Dict[str, Any]] = {}
-
-for _c in _DATASET:
-  if _c.get("is_multi_turn") and _c.get("turns"):
-    for _t in _c["turns"]:
-      _q = (_t.get("user_query") or "").strip().lower()
-      if _q:
-        _PROMPT_TO_CASE_MAP[_q] = _t
-  else:
-    _tk = (_c.get("ticker") or "AAPL").lower()
-    _m = (_c.get("metric_name") or "Revenue").lower()
-    _cy = _c.get("current_year", 2023)
-    _py = _c.get("prior_year", 2022)
-    _sec_tk = (_c.get("secondary_ticker") or "").lower()
-    _q1 = f"how did {_tk}'s {_m} change from fiscal year {_py} to {_cy}?"
-    _q2 = f"explain {_tk}'s item 1a risk factors disclosures for fiscal year {_cy}."
-    _q3 = f"compare the performance of {_tk} and {_sec_tk} in {_cy}."
-    _PROMPT_TO_CASE_MAP[_q1] = _c
-    _PROMPT_TO_CASE_MAP[_q2] = _c
-    _PROMPT_TO_CASE_MAP[_q3] = _c
-    _PROMPT_TO_CASE_MAP[f"{_tk} {_m}"] = _c
-
-
-def find_case_for_prompt(prompt: str) -> Dict[str, Any]:
-  """Thread-safely finds matching case for a prompt without shared mutable state."""
-  p_clean = prompt.strip().lower()
-  if p_clean in _PROMPT_TO_CASE_MAP:
-    return _PROMPT_TO_CASE_MAP[p_clean]
-
-  for known_p, c in _PROMPT_TO_CASE_MAP.items():
-    if known_p and (known_p in p_clean or p_clean in known_p):
-      return c
-
-  for c in _DATASET:
-    tk = (c.get("ticker") or "").lower()
-    m = (c.get("metric_name") or "").lower()
-    if tk and tk in p_clean:
-      if m and m in p_clean:
-        return c
-      if "risk" in p_clean and "risk" in (c.get("category") or "").lower():
-        return c
-      return c
-
-  return _DATASET[0]
-
-
-async def parallel_mock_genai_generate_content(self, model: str, contents: Any, config: Any = None) -> Any:
-  """Thread-safe SDK boundary mock supporting arbitrary concurrency."""
-  last_tool_name = None
-  first_user_prompt = ""
-
-  if isinstance(contents, list) and contents:
-    for item in contents:
-      if getattr(item, "role", "") == "user":
-        for part in (getattr(item, "parts", []) or []):
-          if getattr(part, "text", None):
-            first_user_prompt = part.text
-            break
-        if first_user_prompt:
-          break
-
-    last_item = contents[-1]
-    for part in (getattr(last_item, "parts", []) or []):
-      fn_resp = getattr(part, "function_response", None)
-      if fn_resp:
-        last_tool_name = getattr(fn_resp, "name", None)
-
-  case = find_case_for_prompt(first_user_prompt)
-  ticker = case.get("ticker", "AAPL")
-  metric = case.get("metric_name", "Revenue")
-  c_val = case.get("current_value")
-  p_val = case.get("prior_value")
-  category = case.get("category", "quantitative_variance")
-  is_numeric = isinstance(c_val, (int, float)) and isinstance(p_val, (int, float))
-
-  if not last_tool_name:
-    if "risk" in category or not is_numeric:
-      text = f"### Report for {ticker}\n{case.get('reference_explanation', '')}"
-      return types.GenerateContentResponse(
-          candidates=[types.Candidate(content=types.Content(role="model", parts=[types.Part.from_text(text=text)]))]
-      )
-    else:
-      return types.GenerateContentResponse(
-          candidates=[
-              types.Candidate(
-                  content=types.Content(
-                      role="model",
-                      parts=[
-                          types.Part(
-                              function_call=types.FunctionCall(
-                                  name="calculate_financial_variance_tool",
-                                  args={
-                                      "ticker": ticker,
-                                      "metric_name": metric,
-                                      "current_period_value": c_val,
-                                      "prior_period_value": p_val,
-                                  },
-                              )
-                          )
-                      ],
-                  )
-              )
-          ]
-      )
-
-  # Post-tool narrative
-  ref = case.get("reference_explanation", "")
-  if is_numeric:
-    diff = c_val - p_val
-    pct = (diff / p_val * 100.0) if p_val != 0 else 0.0
-    text = f"{ticker} {metric} changed from ${p_val:,.1f}M to ${c_val:,.1f}M (${diff:+,.1f}M or {pct:+.2f}%). {ref}"
-  else:
-    text = f"{ticker} Financial Summary: {ref}"
-
-  return types.GenerateContentResponse(
-      candidates=[types.Candidate(content=types.Content(role="model", parts=[types.Part.from_text(text=text)]))]
-  )
 
 
 def format_markdown_report(
@@ -201,13 +90,30 @@ def format_markdown_report(
     parallelism: int,
     mode: str,
 ) -> str:
-  """Formats a markdown summary report of the parallel ADK evaluation run."""
+  """Formats a comprehensive markdown summary report of the parallel ADK evaluation run."""
   passed_count = sum(1 for r in results if r.final_eval_status == EvalStatus.PASSED)
   failed_count = len(results) - passed_count
   pass_rate = (passed_count / len(results) * 100.0) if results else 0.0
 
+  # Aggregate metrics pass counts
+  metric_stats: Dict[str, Dict[str, Any]] = {}
+
+  for r in results:
+    metric_results = getattr(r, "overall_eval_metric_results", None) or getattr(r, "eval_metric_results", None) or []
+    for m in metric_results:
+      m_name = getattr(m, "metric_name", "unknown")
+      m_score = getattr(m, "score", getattr(m, "metric_value", None))
+      m_status = getattr(m, "eval_status", None)
+      if m_name not in metric_stats:
+        metric_stats[m_name] = {"scores": [], "passed": 0, "total": 0}
+      metric_stats[m_name]["total"] += 1
+      if m_score is not None:
+        metric_stats[m_name]["scores"].append(m_score)
+      if m_status == EvalStatus.PASSED:
+        metric_stats[m_name]["passed"] += 1
+
   lines = [
-      "# 🚀 Parallel ADK Evaluation Report",
+      "# 🚀 Parallel ADK Multi-Pillar Evaluation Report",
       f"**Eval Set**: `{eval_set_id}`  ",
       f"**Execution Mode**: `{mode.upper()}`  ",
       f"**Parallelism Workers**: `{parallelism}`  ",
@@ -215,33 +121,72 @@ def format_markdown_report(
       f"**Wall-Clock Elapsed Time**: `{total_time_sec:.2f}s` (`{total_time_sec / 60.0:.2f} min`)  ",
       f"**Overall Pass Rate**: `{pass_rate:.1f}%` ({passed_count}/{len(results)})  ",
       "",
-      "## Executive Summary",
-      "| Metric | Total | Passed | Failed | Pass Rate % | Status |",
-      "| :--- | :---: | :---: | :---: | :---: | :---: |",
-      f"| **Overall Eval Cases** | `{len(results)}` | `{passed_count}` | `{failed_count}` | `{pass_rate:.1f}%` | {'✅ PASS' if failed_count == 0 else '❌ FAIL'} |",
+      "## Executive Metrics Summary",
+      "| Evaluation Pillar / Metric | Description | Evaluator Type | Average Score | Metric Pass Rate | Pillar Status |",
+      "| :--- | :--- | :---: | :---: | :---: | :---: |",
+  ]
+
+  for m_name, stats in metric_stats.items():
+    avg_s = (sum(stats["scores"]) / len(stats["scores"])) if stats["scores"] else 0.0
+    p_rate = (stats["passed"] / stats["total"] * 100.0) if stats["total"] else 0.0
+    st_icon = "✅ PASS" if stats["passed"] == stats["total"] else "⚠️ REVIEW"
+
+    if "trajectory" in m_name:
+      desc = "Tool invocation sequence & argument accuracy"
+      e_type = "Deterministic (IN_ORDER)"
+      score_fmt = f"`{avg_s:.2f}` / 1.00"
+    elif "match_v2" in m_name or "llm" in m_name:
+      desc = "LLM Judge Semantic equivalence to golden answer"
+      e_type = "LLM-as-a-Judge (Gemini Flash)"
+      score_fmt = f"`{avg_s:.2f}` / 1.00"
+    elif "rubric" in m_name:
+      desc = "Faithfulness, Precision, Completeness & Safety Rubrics"
+      e_type = "LLM-as-a-Judge (Rubric V1)"
+      score_fmt = f"`{avg_s:.2f}` / 1.00"
+    elif "response_match" in m_name:
+      desc = "Lexical token / unigram overlap (ROUGE-1 F1)"
+      e_type = "Statistical ROUGE-1"
+      score_fmt = f"`{avg_s:.4f}`"
+    else:
+      desc = "General evaluation metric"
+      e_type = "Automated Metric"
+      score_fmt = f"`{avg_s:.2f}`"
+
+    lines.append(
+        f"| **`{m_name}`** | {desc} | {e_type} | {score_fmt} | `{p_rate:.1f}%` ({stats['passed']}/{stats['total']}) | {st_icon} |"
+    )
+
+  lines.extend([
       "",
       "## Case-by-Case ADK Trajectory & Response Results",
-      "| # | Case ID | Invocations | Tool Trajectory Score | Response Match Score | Overall Status |",
-      "| :---: | :--- | :---: | :---: | :---: | :---: |",
-  ]
+      "| # | Case ID | Turns | Trajectory Score | ROUGE-1 F1 | LLM Judge Match | LLM Rubrics Quality | Overall Status |",
+      "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |",
+  ])
 
   for idx, r in enumerate(results, start=1):
     status_icon = "✅ PASSED" if r.final_eval_status == EvalStatus.PASSED else "❌ FAILED"
     inv_count = len(getattr(r, "eval_case_results", []) or []) or 1
 
-    traj_score_str = "1.00"
-    resp_score_str = "1.0000"
+    traj_score_str = "—"
+    rouge_score_str = "—"
+    judge_v2_str = "—"
+    rubric_v1_str = "—"
+
     metric_results = getattr(r, "overall_eval_metric_results", None) or getattr(r, "eval_metric_results", None) or []
     for m in metric_results:
       m_name = getattr(m, "metric_name", "")
       m_val = getattr(m, "score", getattr(m, "metric_value", None))
       if "trajectory" in m_name and m_val is not None:
         traj_score_str = f"`{m_val:.2f}`"
-      elif "response" in m_name and m_val is not None:
-        resp_score_str = f"`{m_val:.4f}`"
+      elif m_name == "response_match_score" and m_val is not None:
+        rouge_score_str = f"`{m_val:.4f}`"
+      elif "match_v2" in m_name and m_val is not None:
+        judge_v2_str = f"`{m_val:.2f}`"
+      elif "rubric" in m_name and m_val is not None:
+        rubric_v1_str = f"`{m_val:.2f}`"
 
     lines.append(
-        f"| {idx} | `{r.eval_id}` | {inv_count} | {traj_score_str} | {resp_score_str} | {status_icon} |"
+        f"| {idx} | `{r.eval_id}` | {inv_count} | {traj_score_str} | {rouge_score_str} | {judge_v2_str} | {rubric_v1_str} | {status_icon} |"
     )
 
   return "\n".join(lines)
@@ -257,7 +202,7 @@ async def run_parallel_adk_eval(
 ) -> int:
   """Executes ADK evaluation with true concurrent parallelism."""
   print("=" * 80)
-  print(f"🚀 PARALLEL ADK EVALUATION RUNNER")
+  print(f"🚀 PARALLEL ADK EVALUATION RUNNER (TRAJECTORY, ROUGE & LLM-AS-A-JUDGE)")
   print(f"Eval Set Path:   {eval_set_path}")
   print(f"Config Path:     {config_path}")
   print(f"Concurrency (p): {parallelism} workers")
@@ -282,6 +227,10 @@ async def run_parallel_adk_eval(
       user_simulator_config=eval_config.user_simulator_config
   )
 
+  print(f"Active Evaluation Metrics ({len(eval_metrics)}):")
+  for em in eval_metrics:
+    print(f"  • {em.metric_name} (Threshold: {getattr(em.criterion, 'threshold', 'N/A')})")
+
   eval_sets_manager = InMemoryEvalSetsManager()
   eval_sets_manager.create_eval_set(app_name="sec_edgar_analyst", eval_set_id=eval_set.eval_set_id)
   for c in all_cases:
@@ -302,7 +251,7 @@ async def run_parallel_adk_eval(
   )
 
   use_live_bool = (mode == "live" and eval_config.live_model_config is not None)
-  live_timeout = eval_config.live_model_config.timeout_seconds if eval_config.live_model_config else 120
+  live_timeout = eval_config.live_model_config.timeout_seconds if eval_config.live_model_config else 180
   inference_config = InferenceConfig(parallelism=parallelism, use_live=use_live_bool, live_timeout_seconds=live_timeout)
   evaluate_config = EvaluateConfig(eval_metrics=eval_metrics, parallelism=parallelism)
 
@@ -324,7 +273,7 @@ async def run_parallel_adk_eval(
     case_name = getattr(inf, "eval_case_id", getattr(inf, "eval_id", f"case_{idx}"))
     print(f"  [{idx}/{len(all_cases)}] Completed inference for case: {case_name}")
 
-  print(f"\n[Phase 2/2] Running Parallel Metric Evaluation & Trajectory Scoring...")
+  print(f"\n[Phase 2/2] Running Parallel Multi-Pillar Metric Evaluation (Trajectory, ROUGE, LLM Judge)...")
   evaluate_request = EvaluateRequest(
       inference_results=completed_inferences,
       evaluate_config=evaluate_config,
@@ -372,7 +321,7 @@ async def run_parallel_adk_eval(
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Parallelized Google ADK Evaluation Runner")
+  parser = argparse.ArgumentParser(description="Parallelized Google ADK Evaluation Runner with LLM-as-a-Judge")
   parser.add_argument(
       "--eval-set",
       type=str,

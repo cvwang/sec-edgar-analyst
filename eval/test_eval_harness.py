@@ -559,4 +559,49 @@ def test_deliberate_break_session_history_wipe_catches_context_loss():
     assert len(turn_history_after_wipe) == 1
 
 
+def test_adk_test_config_llm_judge_and_four_pillars():
+    """Evaluates that test_config.json properly declares all 4 evaluation pillars including LLM-as-a-Judge and financial rubrics."""
+    from google.adk.evaluation.eval_config import get_evaluation_criteria_or_default, get_eval_metrics_from_config
+    from google.adk.evaluation.metric_evaluator_registry import register_custom_metrics_from_config
+    from google.adk.evaluation.final_response_match_v2 import FinalResponseMatchV2Evaluator
+    from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator
+
+    config_path = os.path.join(os.path.dirname(__file__), "evalsets", "test_config.json")
+    eval_config = get_evaluation_criteria_or_default(config_path)
+    eval_metrics = get_eval_metrics_from_config(eval_config)
+
+    metric_names = [m.metric_name for m in eval_metrics]
+    assert "tool_trajectory_avg_score" in metric_names
+    assert "response_match_score" in metric_names
+    assert "final_response_match_v2" in metric_names
+    assert "rubric_based_final_response_quality_v1" in metric_names
+
+    # Check criteria thresholds
+    criteria = eval_config.criteria
+    assert criteria["tool_trajectory_avg_score"].threshold == 1.0
+    assert criteria["response_match_score"] == 0.04
+    assert criteria["final_response_match_v2"].threshold == 0.5
+    assert criteria["rubric_based_final_response_quality_v1"].threshold == 0.6
+
+    # Verify rubrics
+    rubrics = criteria["rubric_based_final_response_quality_v1"].rubrics
+    assert len(rubrics) == 4
+    rubric_ids = [r["rubric_id"] if isinstance(r, dict) else r.rubric_id for r in rubrics]
+    assert "rubric_sec_grounding_faithfulness" in rubric_ids
+    assert "rubric_numerical_precision_fidelity" in rubric_ids
+    assert "rubric_financial_analysis_completeness" in rubric_ids
+    assert "rubric_conversational_isolation" in rubric_ids
+
+    # Verify registry resolution
+    registry = register_custom_metrics_from_config(eval_config)
+    for em in eval_metrics:
+        evaluator = registry.get_evaluator(em)
+        assert evaluator is not None
+        if em.metric_name == "final_response_match_v2":
+            assert isinstance(evaluator, FinalResponseMatchV2Evaluator)
+        elif em.metric_name == "rubric_based_final_response_quality_v1":
+            assert isinstance(evaluator, RubricBasedFinalResponseQualityV1Evaluator)
+
+
+
 

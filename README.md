@@ -134,40 +134,43 @@ PYTHONPATH=. python agent/cli.py
 
 ---
 
-## 🧪 Testing & Evaluation
+## 🧪 Testing & Multi-Pillar Evaluation
+
+The SEC EDGAR Natural Language Analyst evaluation pipeline implements **Google ADK Multi-Pillar Evaluation** across four distinct tiers:
+1. **Deterministic Tool Trajectory (`tool_trajectory_avg_score`)**: Evaluates `IN_ORDER` exact tool invocations, argument matching, and zero hallucinated APIs.
+2. **Lexical Token Overlap (`response_match_score`)**: Statistical ROUGE-1 F1 baseline measuring presence of essential financial tokens and company entities.
+3. **LLM-as-a-Judge Semantic Match (`final_response_match_v2`)**: Evaluates semantic equivalence to golden reference answers via `gemini-2.5-flash`.
+4. **LLM-as-a-Judge Financial Rubrics (`rubric_based_final_response_quality_v1`)**: Qualitatively scores Faithfulness, Numerical Precision, Completeness, and Conversational Isolation against strict SEC financial rubrics.
+
+---
 
 ### 1. Pytest Unit & Integration Test Suite
-Execute the complete deterministic test harness (70 tests):
+Execute the complete deterministic test harness (71 tests):
 ```bash
-PYTHONPATH=. pytest eval/
-```
-Or run specific test modules:
-```bash
-PYTHONPATH=. pytest eval/test_eval_harness.py          # Math engine & agent dispatch
-PYTHONPATH=. pytest eval/test_model_armor.py           # Guardrails & PII redaction
-PYTHONPATH=. pytest eval/test_sec_corpus_rag.py        # RAG retrieval & citations
-PYTHONPATH=. pytest eval/test_multi_thread_session.py  # Session memory & threading
-PYTHONPATH=. pytest eval/test_telemetry_sink.py        # OpenTelemetry & audit sink
+make test
+# or: pytest eval/
 ```
 
 ### 2. Parallel ADK Evaluation Runner (`eval/run_adk_eval_parallel.py`)
-Run the 39-case master evaluation suite with configurable concurrency:
+Run the 39-case master evaluation suite with configurable concurrency (`-p 8`):
 
-#### Offline Fast Mocked Mode:
+#### Fast Offline Mocked Evaluation:
 ```bash
-PYTHONPATH=. python eval/run_adk_eval_parallel.py --mode mocked -p 8
+make eval-mocked
+# or: python eval/run_adk_eval_parallel.py --mode mocked -p 8
 ```
 
-#### Live Vertex AI Model Evaluation:
+#### Live Vertex AI Model & LLM-as-a-Judge Evaluation:
 ```bash
-PYTHONPATH=. python eval/run_adk_eval_parallel.py --mode live -p 8
+make eval-live
+# or: python eval/run_adk_eval_parallel.py --mode live -p 8
 ```
 
-#### Run Targeted Cases:
+#### Run Targeted Test Cases:
 ```bash
-PYTHONPATH=. python eval/run_adk_eval_parallel.py --mode live -p 4 --cases test_001_aapl_revenue,test_003_msft_revenue,test_017_edge_zero_prior_period
+python eval/run_adk_eval_parallel.py --mode live -p 4 --cases test_001_aapl_revenue,test_003_msft_revenue,test_017_edge_zero_prior_period
 ```
-Reports are automatically saved to `eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md`.
+Reports are automatically generated and saved to [`eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md`](eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md).
 
 ---
 

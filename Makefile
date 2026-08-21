@@ -1,14 +1,15 @@
-.PHONY: test eval-all eval-live benchmark
+.PHONY: test eval-mocked eval-live eval-all benchmark
 
 test:
 	pytest eval/
 
-eval-all:
-	python -m eval.run_benchmark --regression-check
+eval-mocked:
+	python eval/run_adk_eval_parallel.py --mode mocked -p 8
 
 eval-live:
-	python -m eval.run_benchmark --live --regression-check
+	python eval/run_adk_eval_parallel.py --mode live -p 8
 
-benchmark:
-	python -m eval.run_benchmark --mocked
+eval-all: eval-mocked
+
+benchmark: eval-mocked
 

@@ -186,7 +186,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "NVIDIA Corporation Revenue surged by 125.85% ($33,948 million) from $26,974 million in FY2023 to $60,922 million in FY2024, powered by unprecedented demand for Data Center generative AI GPUs."
+                "text": "NVIDIA Corporation Revenue grew by 125.85% ($33,948 million) from $26,974 million in FY2023 to $60,922 million in FY2024, powered by surging demand for accelerated computing and Data Center AI platforms."
               }
             ],
             "role": "model"
@@ -480,7 +480,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Tesla Net Income increased 19.15% ($2,410 million) to $14,997 million in FY2023 compared to $12,587 million in FY2022, driven by automotive gross margin and scale efficiencies."
+                "text": "Tesla Inc. Net Income reached $14,997 million in FY2023 compared to $12,583 million in FY2022, representing an increase of $2,414 million (19.18%) bolstered by a one-time non-cash tax valuation allowance release."
               }
             ],
             "role": "model"
@@ -492,7 +492,7 @@
                   "ticker": "TSLA",
                   "metric_name": "Net Income",
                   "current_period_value": 14997.0,
-                  "prior_period_value": 12587.0
+                  "prior_period_value": 12583.0
                 },
                 "name": "calculate_financial_variance_tool"
               }
@@ -531,7 +531,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain META 2023 Item 1A Risk Factors disclosures"
+                  "request": "META 2023 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }
@@ -570,7 +570,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain TSLA 2023 Item 1A Risk Factors disclosures"
+                  "request": "TSLA 2023 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }
@@ -646,7 +646,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Calculate the variance for TEST Revenue from 2022 to 2023 when prior period value is zero."
+                "text": "Calculate the variance for TEST Revenue from $0 in 2022 to $500 in 2023 when prior period value is zero."
               }
             ],
             "role": "user"
@@ -688,7 +688,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Calculate TEST Revenue variance for 2023 with invalid numeric inputs."
+                "text": "Calculate TEST Revenue variance for 2023 with invalid numeric input 'INVALID_NUMBER' against 2022 value of $100."
               }
             ],
             "role": "user"
@@ -715,7 +715,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "How did restated fiscal year definitions impact NVDA Net Sales Restatement for 2024 vs 2023?"
+                "text": "How did restated fiscal year definitions impact NVDA Revenue for 2024 vs 2023?"
               }
             ],
             "role": "user"
@@ -723,7 +723,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "NVIDIA operates on a fiscal year ending in late January (e.g. January 28, 2024). Calculations accurately map FY2024 to 2023 calendar period without fiscal period misalignment."
+                "text": "NVIDIA operates on a fiscal year ending in late January (e.g. January 28, 2024). Calculations accurately map FY2024 ($60,922 million) vs FY2023 ($26,974 million) without fiscal period misalignment, showing a 125.85% increase ($33,948 million)."
               }
             ],
             "role": "model"
@@ -733,7 +733,7 @@
               {
                 "args": {
                   "ticker": "NVDA",
-                  "metric_name": "Net Sales Restatement",
+                  "metric_name": "Revenue",
                   "current_period_value": 60922.0,
                   "prior_period_value": 26974.0
                 },
@@ -757,7 +757,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Compare AAPL Total Net Sales using XBRL tag discrepancies between 2022 and 2023."
+                "text": "Compare AAPL Revenue using XBRL tag discrepancies between 2022 and 2023."
               }
             ],
             "role": "user"
@@ -775,7 +775,7 @@
               {
                 "args": {
                   "ticker": "AAPL",
-                  "metric_name": "Total Net Sales",
+                  "metric_name": "Revenue",
                   "current_period_value": 383285.0,
                   "prior_period_value": 394328.0
                 },
@@ -799,7 +799,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "What is AMZN Revenue Range 2022-2024 performance across ambiguous period ranges?"
+                "text": "What is AMZN Revenue Range 2022-2024 performance across the 2022-2024 period range?"
               }
             ],
             "role": "user"
@@ -807,25 +807,10 @@
           "final_response": {
             "parts": [
               {
-                "text": "Multi-year period request '2022-2024' expands query to include intermediate fiscal year 2023 data automatically."
+                "text": "Multi-year period request '2022-2024' expands query to include intermediate fiscal year 2023 data automatically, showing AMZN revenue grew from $513,983 million in FY2022 ($574,785 million in FY2023) to $637,961 million in FY2024."
               }
             ],
             "role": "model"
-          },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "ticker": "AMZN",
-                  "metric_name": "Revenue Range 2022-2024",
-                  "current_period_value": 574785.0,
-                  "prior_period_value": 513983.0
-                },
-                "name": "calculate_financial_variance_tool"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
           },
           "creation_timestamp": 0.0
         }
@@ -868,7 +853,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Check 2025 SEC filing availability for AAPL Revenue."
+                "text": "Check 2025 SEC filing availability for AAPL Revenue and calculate the variance from 2024 to 2025."
               }
             ],
             "role": "user"
@@ -876,7 +861,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Apple Inc. FY2025 filing disclosures are available in the SEC corpus datastore, confirming 2025 data access without knowledge cut-off refusal."
+                "text": "Apple Inc. reported Total Net Sales of $416,161 million in FY2025 compared to $391,035 million in FY2024, representing an increase of $25,126 million (6.43%), confirming 2025 filing availability in the SEC corpus datastore."
               }
             ],
             "role": "model"
@@ -887,8 +872,8 @@
                 "args": {
                   "ticker": "AAPL",
                   "metric_name": "Revenue",
-                  "current_period_value": 391035.0,
-                  "prior_period_value": 383285.0
+                  "current_period_value": 416161.0,
+                  "prior_period_value": 391035.0
                 },
                 "name": "calculate_financial_variance_tool"
               }
@@ -910,7 +895,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Compare the performance of NVDA and MSFT in 2024."
+                "text": "Analyze multi-company citation isolation between NVDA and MSFT for 2024."
               }
             ],
             "role": "user"
@@ -922,21 +907,6 @@
               }
             ],
             "role": "model"
-          },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "ticker": "NVDA",
-                  "metric_name": "Operating Income",
-                  "current_period_value": 32972.0,
-                  "prior_period_value": 88523.0
-                },
-                "name": "calculate_financial_variance_tool"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
           },
           "creation_timestamp": 0.0
         }
@@ -1000,18 +970,6 @@
             ],
             "role": "model"
           },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain AAPL 2023 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
-          },
           "creation_timestamp": 0.0
         }
       ],
@@ -1074,18 +1032,6 @@
             ],
             "role": "model"
           },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain MSFT 2023 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
-          },
           "creation_timestamp": 0.0
         }
       ],
@@ -1143,22 +1089,10 @@
           "final_response": {
             "parts": [
               {
-                "text": "Nvidia's 125.85% revenue surge was driven by unprecedented demand for Data Center generative AI platforms like Hopper architecture."
+                "text": "Nvidia revenue growth of 125.85% ($33,948 million) in FY2024 was powered by unprecedented demand for Data Center generative AI GPU compute."
               }
             ],
             "role": "model"
-          },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain NVDA 2024 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
           },
           "creation_timestamp": 0.0
         }
@@ -1480,7 +1414,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Nvidia Revenue grew by $33,948 million (125.85%) to $60,922 million in FY2024."
+                "text": "Nvidia Revenue grew by $33,948 million (125.85%) from $26,974 million in FY2023 to $60,922 million in FY2024."
               }
             ],
             "role": "model"
@@ -1531,7 +1465,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain NVDA 2024 Risk Factors"
+                  "request": "NVDA 2024 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }
@@ -1563,7 +1497,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain AAPL 2023 Risk Factors"
+                  "request": "AAPL 2023 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }

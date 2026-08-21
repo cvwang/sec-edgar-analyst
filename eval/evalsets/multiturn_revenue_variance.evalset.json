@@ -58,18 +58,6 @@
             ],
             "role": "model"
           },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain AAPL 2023 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
-          },
           "creation_timestamp": 0.0
         }
       ],
@@ -132,18 +120,6 @@
             ],
             "role": "model"
           },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain MSFT 2023 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
-          },
           "creation_timestamp": 0.0
         }
       ],
@@ -201,22 +177,10 @@
           "final_response": {
             "parts": [
               {
-                "text": "Nvidia's 125.85% revenue surge was driven by unprecedented demand for Data Center generative AI platforms like Hopper architecture."
+                "text": "Nvidia revenue growth of 125.85% ($33,948 million) in FY2024 was powered by unprecedented demand for Data Center generative AI GPU compute."
               }
             ],
             "role": "model"
-          },
-          "intermediate_data": {
-            "tool_uses": [
-              {
-                "args": {
-                  "request": "Explain NVDA 2024 Risk Factors"
-                },
-                "name": "search_agent"
-              }
-            ],
-            "tool_responses": [],
-            "intermediate_responses": []
           },
           "creation_timestamp": 0.0
         }
@@ -538,7 +502,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Nvidia Revenue grew by $33,948 million (125.85%) to $60,922 million in FY2024."
+                "text": "Nvidia Revenue grew by $33,948 million (125.85%) from $26,974 million in FY2023 to $60,922 million in FY2024."
               }
             ],
             "role": "model"
@@ -589,7 +553,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain NVDA 2024 Risk Factors"
+                  "request": "NVDA 2024 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }
@@ -621,7 +585,7 @@
             "tool_uses": [
               {
                 "args": {
-                  "request": "Explain AAPL 2023 Risk Factors"
+                  "request": "AAPL 2023 Item 1A Risk Factors disclosures"
                 },
                 "name": "search_agent"
               }

@@ -105,7 +105,7 @@
     "expected_percentage_change": 125.85,
     "expected_direction": "Increase",
     "expected_grounding_keyword": "Data Center",
-    "reference_explanation": "NVIDIA Corporation Revenue surged by 125.85% ($33,948 million) from $26,974 million in FY2023 to $60,922 million in FY2024, powered by unprecedented demand for Data Center generative AI GPUs.",
+    "reference_explanation": "NVIDIA Corporation Revenue grew by 125.85% ($33,948 million) from $26,974 million in FY2023 to $60,922 million in FY2024, powered by surging demand for accelerated computing and Data Center AI platforms.",
     "category": "quantitative_variance",
     "provenance": {
       "accession_number": "0001045810-24-000029",
@@ -261,12 +261,12 @@
     "prior_year": 2022,
     "metric_name": "Net Income",
     "current_value": 14997.0,
-    "prior_value": 12587.0,
-    "expected_absolute_change": 2410.0,
-    "expected_percentage_change": 19.15,
+    "prior_value": 12583.0,
+    "expected_absolute_change": 2414.0,
+    "expected_percentage_change": 19.18,
     "expected_direction": "Increase",
-    "expected_grounding_keyword": "automotive",
-    "reference_explanation": "Tesla Net Income increased 19.15% ($2,410 million) to $14,997 million in FY2023 compared to $12,587 million in FY2022, driven by automotive gross margin and scale efficiencies.",
+    "expected_grounding_keyword": "tax",
+    "reference_explanation": "Tesla Inc. Net Income reached $14,997 million in FY2023 compared to $12,583 million in FY2022, representing an increase of $2,414 million (19.18%) bolstered by a one-time non-cash tax valuation allowance release.",
     "category": "quantitative_variance",
     "provenance": {
       "accession_number": "0001318605-24-000021",
@@ -420,14 +420,14 @@
     "secondary_ticker": null,
     "current_year": 2024,
     "prior_year": 2023,
-    "metric_name": "Net Sales Restatement",
+    "metric_name": "Revenue",
     "current_value": 60922.0,
     "prior_value": 26974.0,
     "expected_absolute_change": 33948.0,
     "expected_percentage_change": 125.85,
     "expected_direction": "Increase",
     "expected_grounding_keyword": "fiscal year",
-    "reference_explanation": "NVIDIA operates on a fiscal year ending in late January (e.g. January 28, 2024). Calculations accurately map FY2024 to 2023 calendar period without fiscal period misalignment.",
+    "reference_explanation": "NVIDIA operates on a fiscal year ending in late January (e.g. January 28, 2024). Calculations accurately map FY2024 ($60,922 million) vs FY2023 ($26,974 million) without fiscal period misalignment, showing a 125.85% increase ($33,948 million).",
     "category": "edge_case",
     "provenance": {
       "accession_number": "0001045810-24-000029",
@@ -443,7 +443,7 @@
     "secondary_ticker": null,
     "current_year": 2023,
     "prior_year": 2022,
-    "metric_name": "Total Net Sales",
+    "metric_name": "Revenue",
     "current_value": 383285.0,
     "prior_value": 394328.0,
     "expected_absolute_change": -11043.0,
@@ -467,13 +467,13 @@
     "current_year": 2024,
     "prior_year": 2022,
     "metric_name": "Revenue Range 2022-2024",
-    "current_value": 574785.0,
-    "prior_value": 513983.0,
-    "expected_absolute_change": 60802.0,
-    "expected_percentage_change": 11.83,
+    "current_value": null,
+    "prior_value": null,
+    "expected_absolute_change": null,
+    "expected_percentage_change": null,
     "expected_direction": "Increase",
     "expected_grounding_keyword": "2022-2024",
-    "reference_explanation": "Multi-year period request '2022-2024' expands query to include intermediate fiscal year 2023 data automatically.",
+    "reference_explanation": "Multi-year period request '2022-2024' expands query to include intermediate fiscal year 2023 data automatically, showing AMZN revenue grew from $513,983 million in FY2022 ($574,785 million in FY2023) to $637,961 million in FY2024.",
     "category": "edge_case",
     "provenance": {
       "accession_number": "0001018724-24-000008",
@@ -513,13 +513,13 @@
     "current_year": 2025,
     "prior_year": 2024,
     "metric_name": "Revenue",
-    "current_value": 391035.0,
-    "prior_value": 383285.0,
-    "expected_absolute_change": 7750.0,
-    "expected_percentage_change": 2.02,
+    "current_value": 416161.0,
+    "prior_value": 391035.0,
+    "expected_absolute_change": 25126.0,
+    "expected_percentage_change": 6.43,
     "expected_direction": "Increase",
     "expected_grounding_keyword": "2025",
-    "reference_explanation": "Apple Inc. FY2025 filing disclosures are available in the SEC corpus datastore, confirming 2025 data access without knowledge cut-off refusal.",
+    "reference_explanation": "Apple Inc. reported Total Net Sales of $416,161 million in FY2025 compared to $391,035 million in FY2024, representing an increase of $25,126 million (6.43%), confirming 2025 filing availability in the SEC corpus datastore.",
     "category": "edge_case",
     "provenance": {
       "accession_number": "0000320193-25-000010",
@@ -536,14 +536,14 @@
     "current_year": 2024,
     "prior_year": 2023,
     "metric_name": "Operating Income",
-    "current_value": 32972.0,
-    "prior_value": 88523.0,
-    "expected_absolute_change": -55551.0,
-    "expected_percentage_change": -62.75,
-    "expected_direction": "Decrease",
+    "current_value": null,
+    "prior_value": null,
+    "expected_absolute_change": null,
+    "expected_percentage_change": null,
+    "expected_direction": "N/A",
     "expected_grounding_keyword": "NVDA",
     "reference_explanation": "Multi-entity query for NVDA and MSFT isolates citation badges 1:1 to their respective company 10-K source files without cross-entity mislinking.",
-    "category": "peer_comparison",
+    "category": "edge_case",
     "provenance": {
       "accession_number": "0001045810-24-000020",
       "form": "10-K",
@@ -581,7 +581,7 @@
         "current_year": 2023,
         "expected_grounding_keyword": "macroeconomic",
         "reference_explanation": "Apple's revenue decrease of $11,043 million (-2.8%) was primarily driven by macroeconomic headwinds in hardware sales and foreign exchange rate pressure.",
-        "category": "qualitative_risk"
+        "category": "qualitative_mda"
       }
     ]
   },
@@ -615,7 +615,7 @@
         "current_year": 2023,
         "expected_grounding_keyword": "cloud",
         "reference_explanation": "The operating income growth of $5,140 million was driven by Intelligent Cloud expansion and Azure server efficiency gains.",
-        "category": "qualitative_risk"
+        "category": "qualitative_mda"
       }
     ]
   },
@@ -648,8 +648,13 @@
         "metric_name": "Revenue",
         "current_year": 2024,
         "expected_grounding_keyword": "Data Center",
-        "reference_explanation": "Nvidia's 125.85% revenue surge was driven by unprecedented demand for Data Center generative AI platforms like Hopper architecture.",
-        "category": "qualitative_risk"
+        "reference_explanation": "Nvidia revenue growth of 125.85% ($33,948 million) in FY2024 was powered by unprecedented demand for Data Center generative AI GPU compute.",
+        "category": "qualitative_mda",
+        "current_value": null,
+        "prior_value": null,
+        "expected_absolute_change": null,
+        "expected_percentage_change": null,
+        "expected_direction": null
       }
     ]
   },
@@ -840,7 +845,7 @@
           "211915",
           "198270"
         ],
-        "reference_explanation": "Nvidia Revenue grew by $33,948 million (125.85%) to $60,922 million in FY2024.",
+        "reference_explanation": "Nvidia Revenue grew by $33,948 million (125.85%) from $26,974 million in FY2023 to $60,922 million in FY2024.",
         "category": "quantitative_variance"
       }
     ]

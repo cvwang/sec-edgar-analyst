@@ -251,7 +251,7 @@ async def run_parallel_adk_eval(
   )
 
   use_live_bool = (mode == "live" and eval_config.live_model_config is not None)
-  live_timeout = eval_config.live_model_config.timeout_seconds if eval_config.live_model_config else 180
+  live_timeout = eval_config.live_model_config.timeout_seconds if eval_config.live_model_config else 360
   inference_config = InferenceConfig(parallelism=parallelism, use_live=use_live_bool, live_timeout_seconds=live_timeout)
   evaluate_config = EvaluateConfig(eval_metrics=eval_metrics, parallelism=parallelism)
 

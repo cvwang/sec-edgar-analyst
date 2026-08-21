@@ -9,6 +9,15 @@ from agent.config import settings
 from agent.root_orchestrator import RootOrchestrator, export_financial_report, ExportReportRequest
 from app.app_controller import AppController
 
+from eval.metrics import (
+    extract_numbers_from_text,
+    compute_numerical_accuracy,
+    compute_grounding_recall,
+    compute_rouge_1,
+    compute_rouge_l,
+)
+from eval.evaluator import EvalEngine
+
 GOLDEN_DATASET_PATH = os.path.join(os.path.dirname(__file__), "golden_dataset.json")
 
 
@@ -601,6 +610,95 @@ def test_adk_test_config_llm_judge_and_four_pillars():
             assert isinstance(evaluator, FinalResponseMatchV2Evaluator)
         elif em.metric_name == "rubric_based_final_response_quality_v1":
             assert isinstance(evaluator, RubricBasedFinalResponseQualityV1Evaluator)
+
+
+def test_metrics_extract_numbers_from_text():
+    """Evaluates regex number extraction from financial narrative strings."""
+    text = "Apple Inc. FY2023 10-K reported Total Net Sales of $383,285.0 million, down 2.8% from $394,328 million."
+    nums = extract_numbers_from_text(text)
+    assert 383285.0 in nums
+    assert 2.8 in nums
+    assert 394328.0 in nums
+
+
+def test_metrics_numerical_accuracy_100_percent():
+    """Evaluates 100% numerical accuracy checking against expected numbers."""
+    narrative = "Revenue for AAPL reached $383,285 million in 2023, down from $394,328 million in 2022 with absolute change -$11,043 million."
+    expected = [383285.0, 394328.0, -11043.0]
+    res = compute_numerical_accuracy(narrative, expected)
+    assert res["is_100_percent_accurate"] is True
+    assert res["pass_rate"] == 1.0
+    assert len(res["missing_values"]) == 0
+
+
+def test_metrics_numerical_accuracy_missing_value():
+    """Evaluates detection of missing expected numbers in narrative."""
+    narrative = "Revenue for AAPL reached $383,285 million in 2023."
+    expected = [383285.0, 394328.0]
+    res = compute_numerical_accuracy(narrative, expected)
+    assert res["is_100_percent_accurate"] is False
+    assert res["pass_rate"] == 0.5
+    assert 394328.0 in res["missing_values"]
+
+
+def test_metrics_grounding_recall():
+    """Evaluates grounding recall metric calculation across retrieved passages and keywords."""
+    narrative = "Apple reported $383,285 million revenue driven by macroeconomic conditions."
+    retrieved_chunks = ["Item 7 MD&A: Net sales were $383,285 million due to macroeconomic headwinds."]
+    keywords = ["macroeconomic"]
+
+    res = compute_grounding_recall(narrative, retrieved_chunks, keywords)
+    assert res["numeric_recall"] == 1.0
+    assert res["keyword_recall"] == 1.0
+    assert res["grounding_recall"] == 1.0
+
+
+def test_metrics_rouge_1_and_rouge_l():
+    """Evaluates ROUGE-1 and ROUGE-L unigram/LCS overlap calculations."""
+    candidate = "Apple reported net sales of 383285 million in 2023."
+    reference = "Apple Inc reported net sales of 383285 million in 2023."
+
+    r1 = compute_rouge_1(candidate, reference)
+    rl = compute_rouge_l(candidate, reference)
+
+    assert r1["f1"] > 0.8
+    assert rl["f1"] > 0.8
+
+
+def test_eval_engine_layer1_deterministic():
+    """Evaluates EvalEngine Layer 1 deterministic statistical scoring."""
+    engine = EvalEngine()
+    case = {
+        "case_id": "test_sample",
+        "ticker": "AAPL",
+        "current_value": 383285.0,
+        "prior_value": 394328.0,
+        "expected_absolute_change": -11043.0,
+        "expected_grounding_keyword": "macroeconomic",
+        "reference_explanation": "Apple reported $383,285 million revenue in 2023.",
+    }
+    generated = "Apple reported $383,285 million revenue in 2023 compared to $394,328 million in 2022 with a change of -$11,043 million under macroeconomic pressure."
+    retrieved = ["10-K snippet: $383,285 million in 2023 compared to $394,328 million in 2022 with -$11,043 million under macroeconomic pressure."]
+
+    res = engine.evaluate_case_layer1_deterministic(case, generated, retrieved)
+    assert res["math_accuracy_pct"] == 100.0
+    assert res["is_math_accurate"] is True
+    assert res["grounding_recall"] == 1.0
+    assert res["rouge_1_f1"] > 0.4
+
+
+def test_golden_dataset_stress_test_cases():
+    """Evaluates integrity and coverage of all 39 cases in golden_dataset.json."""
+    golden_path = os.path.join(os.path.dirname(__file__), "golden_dataset.json")
+    with open(golden_path, "r") as f:
+        cases = json.load(f)
+
+    assert len(cases) == 39
+    case_ids = [c["case_id"] for c in cases]
+    assert "test_023_edge_2025_filing_availability" in case_ids
+    assert "test_024_edge_multi_company_citation_isolation" in case_ids
+    assert "test_mt_001_aapl_drilldown" in case_ids
+
 
 
 

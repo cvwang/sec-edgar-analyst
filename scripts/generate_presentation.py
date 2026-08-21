@@ -577,10 +577,10 @@ def create_deck() -> Presentation:
     set_slide_background(slide16)
     add_header(slide16, "ADK Evaluation Harness & Golden Dataset Benchmark", "Automated Pytest Suite Execution against Curated SEC Test Cases")
 
-    add_card(slide16, 0.8, 1.8, 5.7, 4.8, "Eval Harness Architecture (eval/run_benchmark.py)")
+    add_card(slide16, 0.8, 1.8, 5.7, 4.8, "Eval Harness Architecture (run_adk_eval_parallel.py)")
     add_bullet_points(slide16, 1.0, 2.5, 5.3, 3.8, [
         "Golden Dataset: eval/golden_dataset.json containing 100+ curated financial Q&A ground-truth pairs.",
-        "Automated Runner: eval/run_benchmark.py executes end-to-end agent trajectories against test cases.",
+        "Automated Runner: eval/run_adk_eval_parallel.py executes parallel ADK agent trajectories.",
         "Metrics Extracted: Math accuracy, grounded recall, ROUGE-L F1, LLM faithfulness, and execution latency.",
         "Regression Lock: Automated pytest assertions block pull requests if evaluation scores drop."
     ], font_size=12)
@@ -618,7 +618,7 @@ def create_deck() -> Presentation:
     add_bullet_points(slide17, 7.0, 2.5, 5.3, 3.8, [
         "Incident Detection: Runtime edge cases trigger system rule codification.",
         "System Constitution Lock: Codifies permanent behavior rules in agent/constitution.py.",
-        "Pytest Assertion Lock: Locks new test assertions in eval/run_benchmark.py to prevent regressions.",
+        "Pytest Assertion Lock: Locks new test assertions in eval/test_eval_harness.py to prevent regressions.",
         "Roadmap (5% Sampling): Extensible design to sample 5% of live traffic for automated drift auditing."
     ], font_size=12)
 

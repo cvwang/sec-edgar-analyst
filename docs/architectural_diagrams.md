@@ -441,7 +441,7 @@ flowchart TD
     end
 
     subgraph EvaluationSuite ["3. Evaluation Suite Execution"]
-        BenchRunner["Benchmark Test Runner<br/>(pytest eval/run_benchmark.py)"]
+        BenchRunner["Benchmark Test Runner<br/>(pytest eval/ & run_adk_eval_parallel.py)"]
         TrajectoryEval["ADK Native Trajectory Evaluation<br/>(EVAL-05 ADK Test Harness)"]
         PerformanceProfile["Performance & Latency Profiling<br/>(EVAL-07 Latency Benchmarks)"]
     end

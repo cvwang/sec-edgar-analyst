@@ -58,13 +58,16 @@ An enterprise-grade, agentic financial analysis platform built on the **Google A
 │   ├── golden_dataset.json          <- Audited Ground-Truth Evaluation Dataset
 │   ├── generate_evalset.py          <- ADK EvalSet Compiler
 │   ├── run_adk_eval_parallel.py     <- Parallel ADK Evaluation Runner
-│   ├── test_eval_harness.py         <- Unit & Integration Pytest Suite
-│   ├── test_benchmark_framework.py  <- Benchmark Framework Verification
+│   ├── test_eval_harness.py         <- Core Unit & Integration Pytest Suite
 │   ├── test_model_armor.py          <- Security Guardrail Tests
 │   ├── test_multi_thread_session.py <- Multi-Turn Session State Tests
 │   ├── test_sec_corpus_rag.py       <- RAG Grounding & Citation Tests
 │   ├── test_telemetry_sink.py       <- Observability Sink Tests
+│   ├── evaluator.py                 <- Dual-Layer Eval Engine (Metrics & Scoring)
+│   ├── metrics.py                   <- Deterministic Math, Recall & ROUGE Metrics
+│   ├── mocks.py                     <- Thread-Safe SDK & Boundary Mocks
 │   └── evalsets/
+│       ├── test_config.json         <- ADK 4-Pillar Evaluation Configuration
 │       ├── sec_edgar_analyst_master.evalset.json
 │       ├── multiturn_revenue_variance.evalset.json
 │       └── capstone_demo.evalset.json
@@ -145,7 +148,7 @@ The SEC EDGAR Natural Language Analyst evaluation pipeline implements **Google A
 ---
 
 ### 1. Pytest Unit & Integration Test Suite
-Execute the complete deterministic test harness (71 tests):
+Execute the complete deterministic test harness across all 5 test modules (69 tests):
 ```bash
 make test
 # or: pytest eval/
@@ -171,6 +174,12 @@ make eval-live
 python eval/run_adk_eval_parallel.py --mode live -p 4 --cases test_001_aapl_revenue,test_003_msft_revenue,test_017_edge_zero_prior_period
 ```
 Reports are automatically generated and saved to [`eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md`](eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md).
+
+### 3. Latency & Performance Profiling
+System latency and execution profiling are measured across multiple operational layers:
+1. **Parallel Evaluation Profiling**: `eval/run_adk_eval_parallel.py` measures precise wall-clock latency per case, overall suite throughput, and breaks down timing across phase 1 (agent trajectory inference) and phase 2 (multi-pillar metric evaluation). The generated markdown scorecard includes a dedicated `Latency (s)` column for every test case.
+2. **Distributed OpenTelemetry Spans**: `agent/observability/tracer.py` traces root agent invocations, tool calling sub-spans, and SEC search roundtrips in Google Cloud Trace.
+3. **Production BigQuery Telemetry Sink**: `agent/observability/telemetry_sink.py` asynchronously logs per-request token metrics (prompt tokens, response tokens, cached tokens), cache hit ratios, and millisecond latencies to BigQuery (`sec_edgar_telemetry.telemetry_events`).
 
 ---
 

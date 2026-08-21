@@ -173,7 +173,7 @@ make eval-live
 ```bash
 python eval/run_adk_eval_parallel.py --mode live -p 4 --cases test_001_aapl_revenue,test_003_msft_revenue,test_017_edge_zero_prior_period
 ```
-Reports are automatically generated and saved to [`eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md`](eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1.md).
+Reports are automatically generated and saved by execution mode to [`eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1_live.md`](eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1_live.md) and [`eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1_mocked.md`](eval/results/adk_parallel_eval_sec_edgar_analyst_master_v1_mocked.md).
 
 ### 3. Latency & Performance Profiling
 System latency and execution profiling are measured across multiple operational layers:

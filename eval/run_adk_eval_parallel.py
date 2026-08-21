@@ -299,9 +299,15 @@ async def run_parallel_adk_eval(
   )
 
   os.makedirs(output_dir, exist_ok=True)
-  report_path = os.path.join(output_dir, f"adk_parallel_eval_{eval_set.eval_set_id}.md")
+  report_path = os.path.join(output_dir, f"adk_parallel_eval_{eval_set.eval_set_id}_{mode.lower()}.md")
   with open(report_path, "w", encoding="utf-8") as f:
     f.write(report_md)
+
+  # Maintain canonical default pointer file for live runs
+  if mode.lower() == "live":
+    canonical_path = os.path.join(output_dir, f"adk_parallel_eval_{eval_set.eval_set_id}.md")
+    with open(canonical_path, "w", encoding="utf-8") as f:
+      f.write(report_md)
 
   passed_count = sum(1 for r in eval_results if r.final_eval_status == EvalStatus.PASSED)
   failed_count = len(eval_results) - passed_count

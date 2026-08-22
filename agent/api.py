@@ -48,7 +48,7 @@ class ExportApiRequest(BaseModel):
     """Input payload for report GCS export REST API."""
 
     ticker: str
-    current_year: int = 2023
+    current_year: Optional[int] = None
     destination_gcs_uri: str
     report_content: str
     human_approved: bool = False

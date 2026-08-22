@@ -19,6 +19,7 @@ override.tf.json
 .pytest_cache/
 .adk/
 agent/.adk/
+agent/sec_edgar_analyst/
 *.evalset_result.json
 eval/results/
 *.log

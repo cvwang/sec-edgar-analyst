@@ -244,6 +244,50 @@ def main():
                 "match_type": "IN_ORDER",
             },
             "response_match_score": 0.04,
+            "final_response_match_v2": {
+                "threshold": 0.5,
+                "judge_model_options": {
+                    "judge_model": "gemini-2.5-flash",
+                    "num_samples": 1,
+                },
+            },
+            "rubric_based_final_response_quality_v1": {
+                "threshold": 0.6,
+                "judge_model_options": {
+                    "judge_model": "gemini-2.5-flash",
+                    "num_samples": 1,
+                },
+                "rubrics": [
+                    {
+                        "rubric_id": "rubric_sec_grounding_faithfulness",
+                        "rubric_content": {
+                            "text_property": "The final response is strictly faithful to retrieved SEC 10-K filing disclosures without hallucinated financial facts.",
+                        },
+                        "description": "Evaluates grounding fidelity to SEC filings.",
+                    },
+                    {
+                        "rubric_id": "rubric_numerical_precision_fidelity",
+                        "rubric_content": {
+                            "text_property": "All reported financial metrics, period years, and percentage or dollar variances match calculation engine outputs accurately.",
+                        },
+                        "description": "Evaluates numerical precision and deterministic variance accuracy.",
+                    },
+                    {
+                        "rubric_id": "rubric_financial_analysis_completeness",
+                        "rubric_content": {
+                            "text_property": "The response comprehensively answers the user query, providing MD&A variance context or risk disclosures where requested.",
+                        },
+                        "description": "Evaluates analytical depth and completeness.",
+                    },
+                    {
+                        "rubric_id": "rubric_conversational_isolation",
+                        "rubric_content": {
+                            "text_property": "The response maintains conversational context isolation, does not leak irrelevant entities across context switches, and adheres to safety boundaries.",
+                        },
+                        "description": "Evaluates conversational isolation and safety.",
+                    },
+                ],
+            },
         }
     }
     with open(TEST_CONFIG_FILE_PATH, "w") as f:

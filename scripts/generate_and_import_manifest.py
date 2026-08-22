@@ -29,11 +29,13 @@ for blob in blobs:
     parts = doc_id.split("_")
     ticker = parts[0].upper() if len(parts) > 0 else "SEC"
     
-    year = 2023
+    year = None
     for p in parts:
         if p.isdigit() and len(p) == 4:
             year = int(p)
             break
+    if year is None:
+        raise ValueError(f"Could not parse 4-digit fiscal year from blob filename: {basename}")
             
     section = "Item 7 - MD&A"
     if "Risk" in doc_id or "Item1A" in doc_id:
